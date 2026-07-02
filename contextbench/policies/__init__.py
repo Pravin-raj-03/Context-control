@@ -6,5 +6,14 @@ the component registry. Phase 1 ships only the sliding-window policy.
 from contextbench.policies.base import ContextPolicy, POLICY_REGISTRY
 from contextbench.policies.sliding_window import SlidingWindowPolicy
 from contextbench.policies.delta_context import DeltaContextPolicy
+from contextbench.policies.summary import SummaryPolicy
+from contextbench.policies.retrieval import RetrievalPolicy
 
-__all__ = ["ContextPolicy", "POLICY_REGISTRY", "SlidingWindowPolicy", "DeltaContextPolicy"]
+__all__ = [
+    "ContextPolicy",
+    "POLICY_REGISTRY",
+    "SlidingWindowPolicy",
+    "DeltaContextPolicy",
+    "SummaryPolicy",
+    "RetrievalPolicy"
+]

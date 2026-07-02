@@ -1,0 +1,7 @@
+name: retrieval
+# Embedding model used for retrieval
+embedder_model: sentence-transformers/all-MiniLM-L6-v2
+embedder_device: null
+# The fraction of the budget reserved for retrieved top-k turns.
+# The remainder is used for the most recent window of turns.
+retrieval_fraction: 0.5

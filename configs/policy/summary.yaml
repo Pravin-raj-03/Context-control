@@ -1,0 +1,4 @@
+name: summary
+# The fraction of the budget reserved for the rolling summary.
+# The remaining budget is used for the most recent window of turns.
+summary_fraction: 0.3

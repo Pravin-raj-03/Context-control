@@ -1,0 +1,4 @@
+name: delta_context
+# The fraction of the budget reserved for checkpoint anchor turns (landmarks)
+landmark_fraction: 0.3
+# Use defaults for everything else (thresholds, metric, etc.)
