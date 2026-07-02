@@ -1,0 +1,19 @@
+# Root Hydra config. Composes one option from each group below, then applies
+# `_self_` so top-level keys here override the composed defaults.
+#
+# The resolved config is validated by contextbench.core.config_schema at startup
+# and a snapshot is written into every run directory for reproducibility.
+
+defaults:
+  - model: tinyllama
+  - policy: sliding_window
+  - dataset: locomo
+  - experiment: default
+  - _self_
+
+# Token budget for the *selected context* (not the full prompt). Sweepable, e.g.
+#   python benchmark.py budget=512,1024,2048 --multirun
+budget: 1024
+
+# Global RNG seed for deterministic runs.
+seed: 42

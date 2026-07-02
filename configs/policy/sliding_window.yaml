@@ -1,0 +1,5 @@
+# Phase 1 policy: keep the newest whole messages that fit the token budget.
+name: sliding_window
+# Whether the system prompt / question tokens are reserved before filling the
+# context budget is decided by the engine, not here; this policy only selects
+# conversation messages under the budget it is handed.

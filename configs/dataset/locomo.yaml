@@ -1,0 +1,7 @@
+# LoCoMo long-term conversational memory dataset. Phase 1 uses only the
+# `conversation` and `qa` fields; other fields are parsed into message metadata
+# but not otherwise used.
+name: locomo
+path: data/locomo10.json
+num_samples: null        # null = all samples; set an int to subsample for dev
+qa_categories: null      # null = all categories; or a list of ints to filter

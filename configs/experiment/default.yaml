@@ -1,0 +1,10 @@
+# Run-level settings shared across all components.
+name: default
+output_dir: experiments/results
+qa_timing: end          # Phase 1: run QA after the full conversation is replayed.
+                        # Reserved for future: "per_session" streaming evaluation.
+system_prompt: >-
+  You are a helpful assistant answering questions about a long conversation.
+  Answer concisely using only information from the conversation. If the answer
+  is not present, say you don't know.
+log_level: INFO

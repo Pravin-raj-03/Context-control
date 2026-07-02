@@ -1,0 +1,10 @@
+# Small CPU-friendly model for development and CI. Matches the model already
+# present in the exploratory scripts.
+name: tinyllama
+hf_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+dtype: float32          # float32 for CPU; use bfloat16/float16 on GPU
+device_map: auto
+max_new_tokens: 64
+do_sample: false        # deterministic decoding for reproducible benchmarks
+context_window: 2048    # model's native max positions; budgets must stay under this
+trust_remote_code: false

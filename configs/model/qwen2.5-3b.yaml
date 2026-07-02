@@ -1,0 +1,9 @@
+# Primary evaluation model. Requires a GPU for practical throughput.
+name: qwen2.5-3b-instruct
+hf_id: Qwen/Qwen2.5-3B-Instruct
+dtype: bfloat16
+device_map: auto
+max_new_tokens: 64
+do_sample: false
+context_window: 32768
+trust_remote_code: false
