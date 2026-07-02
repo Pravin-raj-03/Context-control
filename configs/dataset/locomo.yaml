@@ -4,6 +4,8 @@
 name: locomo
 path: data/locomo10.json
 num_samples: null            # null = all samples; set an int to subsample for dev
+max_qa_per_sample: null      # null = all QA per conversation; set an int for quick
+                             # smoke benchmarks (QA generation dominates runtime)
 qa_categories: null          # null = all categories; or a list of ints to filter.
                              # LoCoMo categories: 1=multi-hop, 2=temporal,
                              # 3=open-domain, 4=single-hop, 5=adversarial.

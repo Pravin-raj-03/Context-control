@@ -57,6 +57,7 @@ class DatasetConfig(BaseModel):
     name: str
     path: str
     num_samples: int | None = Field(default=None, gt=0)
+    max_qa_per_sample: int | None = Field(default=None, gt=0)
     qa_categories: list[int] | None = None
     include_image_captions: bool = True
 

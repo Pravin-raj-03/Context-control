@@ -160,6 +160,8 @@ class LoCoMoDataset(Dataset):
             if categories is not None and category not in categories:
                 continue
             items.append(self._build_qa(qa, sample_id, index))
+        if self._config.max_qa_per_sample is not None:
+            items = items[: self._config.max_qa_per_sample]
         return tuple(items)
 
     @staticmethod
