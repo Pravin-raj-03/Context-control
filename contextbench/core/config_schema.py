@@ -70,6 +70,9 @@ class ExperimentConfig(BaseModel):
     output_dir: str = "experiments/results"
     qa_timing: QATiming = "end"
     system_prompt: str
+    question_template: str = (
+        "Conversation:\n{transcript}\n\nQuestion: {question}\nAnswer:"
+    )
     log_level: str = "INFO"
 
 
