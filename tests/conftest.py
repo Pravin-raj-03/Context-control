@@ -8,9 +8,11 @@ HuggingFace dependency. Tests that need the real tokenizer/model are marked
 
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from contextbench.core.config_schema import DatasetConfig
@@ -39,9 +41,48 @@ class WordCounter:
         return sum(self.count_message(m) for m in messages) + (len(messages) - 1)
 
 
+class FakeEmbedder:
+    """A deterministic, model-free Embedder for hermetic ΔContext tests.
+
+    Each word maps to a fixed pseudo-random unit vector (seeded by a stable hash),
+    and a text embeds to the L2-normalized mean of its word vectors. This is
+    deterministic across processes (unlike ``hash``) and gives semantic-ish
+    behaviour: texts sharing words land closer together.
+    """
+
+    def __init__(self, dim: int = 16) -> None:
+        self._dim = dim
+
+    @property
+    def dim(self) -> int:
+        return self._dim
+
+    def _word_vector(self, word: str) -> np.ndarray:
+        digest = hashlib.md5(word.encode("utf-8")).digest()
+        seed = int.from_bytes(digest[:8], "little")
+        rng = np.random.default_rng(seed)
+        return rng.standard_normal(self._dim).astype(np.float32)
+
+    def embed(self, text: str) -> np.ndarray:
+        words = text.lower().split() or ["<empty>"]
+        vector = np.mean([self._word_vector(w) for w in words], axis=0)
+        norm = float(np.linalg.norm(vector))
+        if norm > 0:
+            vector = vector / norm
+        return vector.astype(np.float32)
+
+    def embed_batch(self, texts):
+        return np.stack([self.embed(t) for t in texts])
+
+
 @pytest.fixture
 def counter() -> WordCounter:
     return WordCounter()
+
+
+@pytest.fixture
+def embedder() -> FakeEmbedder:
+    return FakeEmbedder(dim=16)
 
 
 @pytest.fixture
