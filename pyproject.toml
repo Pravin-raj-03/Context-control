@@ -44,6 +44,9 @@ exclude = ["tests*", "configs*", "experiments*", "data*"]
 testpaths = ["tests"]
 addopts = "-ra -q"
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "slow: loads the real model; skipped unless CONTEXTBENCH_SLOW=1",
+]
 
 [tool.ruff]
 line-length = 100
