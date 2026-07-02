@@ -27,6 +27,7 @@ class ModelConfig(BaseModel):
 
     name: str
     hf_id: str
+    backend: str = "hf_causal_lm"
     dtype: Dtype = "float32"
     device_map: str = "auto"
     max_new_tokens: int = Field(default=64, gt=0)
