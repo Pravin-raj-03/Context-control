@@ -29,12 +29,15 @@ from contextbench.core.config_schema import BenchmarkConfig
 from contextbench.datasets.base import DATASET_REGISTRY, Dataset
 from contextbench.engine.conversation_runner import (ConversationResult,
                                                      ConversationRunner, QAPrediction)
+from contextbench.evaluation.evaluator import (EVALUATOR_REGISTRY, EvaluationReport,
+                                               Evaluator)
 from contextbench.policies.base import POLICY_REGISTRY, ContextPolicy
 
 # Register the built-in implementations (import for side effects).
 import contextbench.datasets.locomo  # noqa: F401,E402
 import contextbench.policies.sliding_window  # noqa: F401,E402
 import contextbench.chatbot.model as _model_impls  # noqa: F401,E402
+import contextbench.evaluation.evaluator as _evaluator_impls  # noqa: F401,E402
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +77,7 @@ class BenchmarkEngine:
         policy: ContextPolicy,
         model: ModelBackend,
         runner: ConversationRunner,
+        evaluator: Evaluator,
     ) -> None:
         """Store the config and the (already-constructed) components.
 
@@ -85,6 +89,7 @@ class BenchmarkEngine:
         self._policy = policy
         self._model = model
         self._runner = runner
+        self._evaluator = evaluator
 
     @classmethod
     def from_config(cls, config: BenchmarkConfig) -> BenchmarkEngine:
@@ -111,11 +116,12 @@ class BenchmarkEngine:
             replayer=replayer,
             budget=config.budget,
         )
+        evaluator = EVALUATOR_REGISTRY.create(config.experiment.evaluator)
         logger.info(
             "Engine ready: dataset=%s (%d conversations), policy=%s, budget=%d",
             dataset.name, len(dataset), policy.name, config.budget,
         )
-        return cls(config, dataset, policy, model, runner)
+        return cls(config, dataset, policy, model, runner, evaluator)
 
     def run(self) -> BenchmarkResult:
         """Run the policy over every conversation and collect results.
@@ -146,6 +152,19 @@ class BenchmarkEngine:
             system.num_conversations, system.num_predictions, total_wall_s,
         )
         return BenchmarkResult(self._config, tuple(results), system)
+
+    def evaluate(self, result: BenchmarkResult) -> EvaluationReport:
+        """Score a run's raw predictions with the configured evaluator.
+
+        Kept separate from :meth:`run` so predictions can be re-scored (e.g. with
+        a different evaluator) without re-running the model.
+        """
+        report = self._evaluator.evaluate(result.predictions)
+        logger.info(
+            "Scored %d predictions: EM=%.3f F1=%.3f",
+            report.overall.n, report.overall.exact_match, report.overall.f1,
+        )
+        return report
 
     @property
     def config(self) -> BenchmarkConfig:

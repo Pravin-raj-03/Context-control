@@ -70,6 +70,7 @@ class ExperimentConfig(BaseModel):
     name: str = "default"
     output_dir: str = "experiments/results"
     qa_timing: QATiming = "end"
+    evaluator: str = "qa_em_f1"
     system_prompt: str
     question_template: str = (
         "Conversation:\n{transcript}\n\nQuestion: {question}\nAnswer:"
