@@ -57,6 +57,7 @@ class DatasetConfig(BaseModel):
     path: str
     num_samples: int | None = Field(default=None, gt=0)
     qa_categories: list[int] | None = None
+    include_image_captions: bool = True
 
 
 class ExperimentConfig(BaseModel):
