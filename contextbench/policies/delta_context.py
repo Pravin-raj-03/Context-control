@@ -48,6 +48,7 @@ from contextbench.context.state import SemanticState, SentenceTransformerEmbedde
 from contextbench.core.config_schema import PolicyConfig
 from contextbench.core.types import ContextResult, Message, TokenCounter
 from contextbench.policies.base import ContextPolicy, register_policy
+from contextbench.policies.ranking import rank_turns_with_segment_prior
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +254,14 @@ class DeltaContextPolicy(ContextPolicy):
                 embedding=np.asarray(query_embedding, dtype=np.float32),
                 token_count=0, turn_index=-1, timestamp=-1.0,
             )
-            if self._cfg.expand_landmark_search:
+            if self._cfg.expand_landmark_search and self._cfg.segment_prior_weight > 0.0:
+                candidate_turn_indices = rank_turns_with_segment_prior(
+                    self._turn_embeddings,
+                    [c.turn_index for c in all_ckpts],
+                    query_state.embedding,
+                    self._cfg.segment_prior_weight,
+                )
+            elif self._cfg.expand_landmark_search:
                 candidate_turn_indices = rank_turn_indices_by_relevance(
                     self._turn_embeddings, query_state, self._metric
                 )
@@ -340,6 +348,7 @@ class DeltaContextPolicy(ContextPolicy):
                 "full_history" if query_aware and self._cfg.expand_landmark_search
                 else "checkpoints"
             ),
+            "segment_prior_weight": self._cfg.segment_prior_weight,
         }
 
         return ContextResult(

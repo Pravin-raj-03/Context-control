@@ -18,8 +18,7 @@ env/
 .hydra/
 
 # Experiment outputs (kept out of VCS; provenance lives inside each run dir)
-experiments/results/
-experiments/calibration_check/
+experiments/
 outputs/
 multirun/
 

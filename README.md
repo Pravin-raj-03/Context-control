@@ -10,9 +10,11 @@ model actually sees. Any measured difference in accuracy, latency, or memory is
 therefore attributable to the policy alone. ContextBench is built to make that
 claim defensible to a reviewer.
 
-Phase 1 ships the **sliding-window** policy. Summarization, retrieval, and
-semantic-change (ΔContext) policies are planned and slot in without touching any
-other part of the codebase.
+Four policies ship: **sliding window**, a heuristic extractive **summary**,
+query-time **retrieval**, and **ΔContext**, which tracks the rate of semantic
+change turn by turn, drops checkpoints at topic shifts, and uses the resulting
+topic segments when ranking what to keep. New policies slot in without touching
+any other part of the codebase.
 
 ---
 
@@ -55,9 +57,10 @@ cost trade-offs each policy makes on long, multi-session dialogues.
 contextbench/
   core/        types, registry, config schema (Pydantic)
   chatbot/     tokenizer, model backend, prompt builder, conversation, formatting
-  policies/    base ContextPolicy + sliding_window
+  context/     ΔContext machinery: embed -> state -> change metric -> accumulate -> checkpoint
+  policies/    base ContextPolicy + sliding_window, summary, retrieval, delta_context
   datasets/    base + LoCoMo loader
-  evaluation/  normalization, exact_match, f1, metrics, evaluator
+  evaluation/  normalization, exact_match, f1, abstention, evidence recall, evaluators
   engine/      benchmark_engine, conversation_runner
   runlog/      experiment logger
 ```
@@ -81,6 +84,22 @@ categorized QA). The dataset is *not* bundled. Obtain `locomo10.json` and place
 it at `data/locomo10.json` (or point `dataset.path` at it). Only the
 `conversation` and `qa` fields are used; image turns are inlined as text.
 
+### Evaluation setup (`experiment=locomo_v2`, the default)
+
+The v1 setup (`experiment=default`, kept to reproduce runs made before
+2026-10-09) mis-scored 38% of LoCoMo for every policy. `locomo_v2` fixes both
+problems:
+
+- **Adversarial questions** (category 5) name the wrong speaker on purpose; the
+  correct response is that the conversation never says. Their
+  `adversarial_answer` field is the trap answer, which v1 graded against. The
+  `locomo_qa` evaluator scores them on abstention, as LoCoMo's own evaluation
+  does, and reports them separately: the headline F1 is over answerable
+  questions (categories 1-4) only.
+- **Session dates** were never shown to the model, so temporal questions
+  (category 2) were unanswerable. Each transcript line now starts with its
+  session date, and those tokens count against the budget.
+
 ## Quick start
 
 ```bash
@@ -95,7 +114,18 @@ python benchmark.py budget=1024 model=qwen2.5-3b
 
 # Sweep budgets (each is its own run directory)
 python benchmark.py --multirun budget=512,1024,2048
+
+# Selection only: build every context and score evidence recall, no model.
+# A full LoCoMo pass takes minutes instead of hours.
+python benchmark.py experiment.generate=false policy=delta_context
 ```
+
+For larger grids, `scripts/sweep.py` runs each (variant, budget) in its own
+process, `scripts/summarize_runs.py` tabulates a results directory with a
+dev/test split by conversation, and `scripts/compare_runs.py` runs a paired
+bootstrap between two runs. For long budgets, `model.backend=hf_prefix_cached`
+reuses the KV cache of the prompt prefix shared with the previous question and
+prefills in chunks, so even a whole conversation fits on an 8 GB GPU.
 
 Configuration is composed from Hydra groups under `configs/`
 (`model/`, `policy/`, `dataset/`, `experiment/`) and validated by Pydantic at
@@ -121,7 +151,10 @@ are comparable iff their hashes match.
 
 - **Quality**: exact match and token-level F1 (SQuAD-style normalization),
   reported overall and per LoCoMo category (multi-hop, temporal, open-domain,
-  single-hop, adversarial).
+  single-hop, adversarial), plus the abstention rate on adversarial questions.
+- **Evidence recall**: the fraction of each question's LoCoMo evidence turns
+  that made it into the selected context. It scores the policy itself,
+  separately from how well the model reads what it was given.
 - **System**: prompt/response tokens, average context size, dropped messages,
   per-generation latency, wall time, peak GPU memory, CPU RSS.
 
@@ -168,9 +201,10 @@ without any HuggingFace dependency.
 ## Roadmap
 
 - [x] Sliding-window policy (Phase 1)
-- [ ] Summarization policy
-- [ ] Retrieval policy
-- [ ] Semantic-change (ΔContext) policy
+- [x] Summarization policy (heuristic extractive)
+- [x] Retrieval policy
+- [x] Semantic-change (ΔContext) policy, with topic-segment ranking
+- [x] Corrected LoCoMo evaluation (v2), evidence recall, selection-only runs
 - [ ] Streaming (`per_session`) evaluation timing
 
 ## License

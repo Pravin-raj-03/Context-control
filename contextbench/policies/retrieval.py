@@ -10,7 +10,7 @@ The remainder of the budget is filled with the most recent contiguous tail.
 from __future__ import annotations
 
 import numpy as np
-from typing import Sequence
+from typing import Literal, Sequence
 
 from pydantic import BaseModel, Field
 
@@ -18,12 +18,24 @@ from contextbench.core.config_schema import PolicyConfig
 from contextbench.core.types import ContextResult, Message, TokenCounter
 from contextbench.policies.base import ContextPolicy, register_policy
 from contextbench.context.state import SentenceTransformerEmbedder
+from contextbench.policies.ranking import rank_turns_with_segment_prior
 
 
 class RetrievalConfig(BaseModel):
     embedder_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedder_device: str | None = None
     retrieval_fraction: float = Field(default=0.5, ge=0.0, le=1.0)
+    # "break" stops at the first ranked turn that doesn't fit (strict top-k);
+    # "skip" passes over it and keeps filling with lower-ranked turns, the
+    # packing ΔContext uses -- so the two can be compared on ranking alone.
+    packing: Literal["break", "skip"] = "break"
+    # Control for ΔContext's topic-segment prior: the same scoring
+    # (turn similarity + weight x segment similarity), over segments that carry
+    # no semantic signal -- fixed runs of `segment_turns` turns, or the
+    # dataset's own session boundaries. 0 disables it.
+    segment_prior_weight: float = Field(default=0.0, ge=0.0)
+    segment_source: Literal["fixed", "session"] = "fixed"
+    segment_turns: int = Field(default=20, ge=1)
 
 
 @register_policy("retrieval")
@@ -71,32 +83,25 @@ class RetrievalPolicy(ContextPolicy):
         if query and retrieval_budget > 0 and max_idx > 0:
             query_emb = self._embedder.embed(query)
             
-            # Compute similarities
-            similarities = []
-            for i in range(max_idx):
-                e = self._embeddings[i]
-                norm_e = np.linalg.norm(e)
-                norm_q = np.linalg.norm(query_emb)
-                if norm_e > 0 and norm_q > 0:
-                    sim = np.dot(e, query_emb) / (norm_e * norm_q)
-                else:
-                    sim = 0.0
-                similarities.append((sim, i))
-                
-            # Sort descending by similarity
-            similarities.sort(key=lambda x: x[0], reverse=True)
-            
+            if self._cfg.segment_prior_weight > 0.0:
+                ranked = rank_turns_with_segment_prior(
+                    {i: self._embeddings[i] for i in range(max_idx)},
+                    self._segment_boundaries(history, max_idx),
+                    query_emb,
+                    self._cfg.segment_prior_weight,
+                )
+            else:
+                ranked = self._rank_by_similarity(query_emb, max_idx)
+
             # Pick top-K until budget is filled
-            for sim, i in similarities:
+            for i in ranked:
                 msg = history[i]
                 cost = self._count_message(msg)
                 if retrieval_tokens + cost <= retrieval_budget:
                     selected_retrieved.append(msg)
                     retrieval_tokens += cost
                     retrieved_indices.add(i)
-                else:
-                    # We might skip large messages and try smaller ones, but usually top-k is strictly rank ordered.
-                    # We break to preserve strict rank ordering.
+                elif self._cfg.packing == "break":
                     break
 
         # Fill remainder with recent tail
@@ -144,6 +149,29 @@ class RetrievalPolicy(ContextPolicy):
             dropped_messages=dropped_count,
             policy_meta=meta,
         )
+
+    def _rank_by_similarity(self, query_emb: np.ndarray, max_idx: int) -> list[int]:
+        """Turn indices by cosine similarity to the query, most similar first."""
+        similarities = []
+        norm_q = np.linalg.norm(query_emb)
+        for i in range(max_idx):
+            e = self._embeddings[i]
+            norm_e = np.linalg.norm(e)
+            if norm_e > 0 and norm_q > 0:
+                sim = np.dot(e, query_emb) / (norm_e * norm_q)
+            else:
+                sim = 0.0
+            similarities.append((sim, i))
+        similarities.sort(key=lambda x: x[0], reverse=True)
+        return [i for _, i in similarities]
+
+    def _segment_boundaries(self, history: Sequence[Message], max_idx: int) -> list[int]:
+        """Last turn index of each segment for the segment-prior control."""
+        if self._cfg.segment_source == "session":
+            return [i for i in range(max_idx - 1)
+                    if history[i + 1].session_id != history[i].session_id]
+        k = self._cfg.segment_turns
+        return list(range(k - 1, max_idx, k))
 
     def _count_message(self, message: Message) -> int:
         cached = self._count_cache.get(message)

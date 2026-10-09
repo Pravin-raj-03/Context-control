@@ -7,7 +7,9 @@ reports the 95% CI, a two-sided bootstrap p-value, and wins/losses/ties.
 
 It reads only ``outputs.jsonl``, so it also re-scores runs made under the v1
 evaluation: with ``--scoring v2`` (the default) adversarial probes (category 5)
-are dropped from F1/EM comparisons, matching the ``locomo_qa`` evaluator.
+are dropped, matching the ``locomo_qa`` evaluator's headline numbers. That
+applies to evidence recall too: an adversarial probe's evidence is the trap,
+so recalling it is not a quality signal.
 Runs whose outputs predate the ``adversarial`` field fall back to category 5.
 
 Usage:
@@ -46,7 +48,7 @@ def paired_scores(
     xs, ys = [], []
     for qa_id in shared:
         ra, rb = a[qa_id], b[qa_id]
-        if scoring == "v2" and metric in ("f1", "exact_match") and is_adversarial(ra):
+        if scoring == "v2" and is_adversarial(ra):
             continue
         va, vb = ra.get(metric), rb.get(metric)
         if va is None or vb is None or va == "" or vb == "":

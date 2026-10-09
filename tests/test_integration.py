@@ -42,3 +42,27 @@ def test_engine_run_and_evaluate():
     result2 = engine.run()
     assert [p.prediction for p in result2.predictions] == \
            [p.prediction for p in result.predictions]
+
+
+def test_prefix_cached_backend_matches_plain_generation():
+    """Reusing a shared prefix's KV cache and chunked prefill must not change outputs."""
+    from contextbench.chatbot.model import HFCausalLM, PrefixCachedHFCausalLM
+    from contextbench.chatbot.tokenizer import TokenizerWrapper
+
+    config = _config().model
+    model = PrefixCachedHFCausalLM(config, TokenizerWrapper(config.hf_id))
+    model._PREFILL_CHUNK = 64  # exercise the chunked path on short prompts
+
+    a = "\n".join(f"Ann: On day {i} I bought {i} postcards." for i in range(30))
+    b = "\n".join(f"Bob: Day {i}: pasta with {i} tomatoes." for i in range(30))
+
+    def prompt(transcript, question):
+        return [{"role": "system", "content": "Answer briefly."},
+                {"role": "user", "content": f"{transcript}\n\nQuestion: {question}"}]
+
+    # shared prefix, a full prefix switch, an identical repeat, then back again
+    prompts = [prompt(a, "Postcards on day 12?"), prompt(a, "Postcards on day 3?"),
+               prompt(b, "Tomatoes on day 5?"), prompt(b, "Tomatoes on day 5?"),
+               prompt(a, "Postcards on day 12?")]
+    for p in prompts:
+        assert model.generate(p).text == HFCausalLM.generate(model, p).text

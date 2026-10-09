@@ -18,7 +18,8 @@ from contextbench.context.checkpoint_manager import Checkpoint
 from contextbench.context.embedding_metric import CosineDistanceMetric
 from contextbench.context.state import SemanticState
 from contextbench.policies.delta_context import (rank_checkpoints_by_relevance,
-                                                  rank_turn_indices_by_relevance)
+                                                  rank_turn_indices_by_relevance,
+                                                  rank_turns_with_segment_prior)
 
 
 def _state(vec, turn=0):
@@ -101,3 +102,32 @@ def test_rank_turn_indices_covers_every_observed_turn_not_just_checkpoints():
 def test_rank_turn_indices_empty_is_empty():
     metric = CosineDistanceMetric()
     assert rank_turn_indices_by_relevance({}, _state([1.0, 0.0]), metric) == []
+
+
+def _turns(*vectors):
+    return {i: np.array(v, dtype=np.float32) for i, v in enumerate(vectors)}
+
+
+def test_segment_prior_weight_zero_is_plain_cosine_ranking():
+    turns = _turns([1.0, 0.0], [0.6, 0.8], [0.0, 1.0], [0.8, 0.6])
+    query = np.array([1.0, 0.0])
+    plain = rank_turn_indices_by_relevance(turns, _state(query), CosineDistanceMetric())
+    assert rank_turns_with_segment_prior(turns, [1], query, 0.0) == plain
+
+
+def test_segment_prior_breaks_ties_toward_the_relevant_segment():
+    # Turns 1 and 3 are equally similar to the query on their own, but turn 1
+    # sits in a segment (turns 0-1, checkpoint at 1) that is about the query,
+    # while turn 3's segment (turns 2-3) is not.
+    turns = _turns([1.0, 0.0], [0.6, 0.8], [0.0, 1.0], [0.6, 0.8])
+    query = np.array([1.0, 0.0])
+    ranked = rank_turns_with_segment_prior(turns, [1], query, 0.5)
+    assert ranked.index(1) < ranked.index(3)
+    assert ranked[0] == 0
+
+
+def test_segment_prior_treats_turns_after_last_checkpoint_as_one_segment():
+    turns = _turns([0.0, 1.0], [1.0, 0.0], [0.6, 0.8])
+    # checkpoint at turn 0 -> segments {0} and the open tail {1, 2}
+    ranked = rank_turns_with_segment_prior(turns, [0], np.array([1.0, 0.0]), 1.0)
+    assert ranked == [1, 2, 0]

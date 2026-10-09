@@ -193,3 +193,90 @@ class HFCausalLM(ModelBackend):
 
     def __repr__(self) -> str:
         return f"HFCausalLM(hf_id={self._config.hf_id!r}, device={self._device})"
+
+
+@register_model("hf_prefix_cached")
+class PrefixCachedHFCausalLM(HFCausalLM):
+    """:class:`HFCausalLM` with prefix KV-cache reuse and chunked prefill.
+
+    Consecutive prompts in a run often share a long prefix: every question about
+    a conversation repeats the system prompt, and a context policy that keeps
+    the same turns renders the same transcript. This backend keeps the KV cache
+    of the previous prompt, crops it to the longest token prefix the new prompt
+    shares with it, and only computes the rest. Long prompts are prefilled in
+    ``_PREFILL_CHUNK``-token chunks, which bounds activation memory and is what
+    lets a whole LoCoMo conversation (~25K tokens) run on an 8 GB GPU.
+
+    Decoding is still greedy and the prompt is unchanged, so outputs match
+    :class:`HFCausalLM` up to floating-point differences between chunked and
+    single-pass attention. ``latency_s`` includes the (possibly cached) prefill,
+    so it reflects serving cost with prefix caching, which differs by policy:
+    a policy whose context is stable across questions gets more cache reuse.
+    """
+
+    _PREFILL_CHUNK = 2048
+
+    def __init__(self, config: ModelConfig, tokenizer: TokenizerWrapper) -> None:
+        super().__init__(config, tokenizer)
+        self._cache = None
+        self._cached_ids: list[int] = []
+
+    def generate(self, messages: Sequence[ChatMessage]) -> RawResponse:
+        torch = self._torch
+        from transformers import DynamicCache
+
+        input_ids = list(self._tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, tokenize=True
+        ))
+        prompt_tokens = len(input_ids)
+
+        torch.manual_seed(0)
+        start = time.perf_counter()
+        with torch.inference_mode():
+            # Reuse the shared prefix, but always leave >= 1 prompt token for
+            # generate() to feed, which it needs to produce the first logits.
+            shared = 0
+            for cached, new in zip(self._cached_ids, input_ids):
+                if cached != new:
+                    break
+                shared += 1
+            keep = min(shared, prompt_tokens - 1)
+            if self._cache is None or keep == 0:
+                self._cache = DynamicCache()
+                keep = 0
+            else:
+                self._cache.crop(keep)
+
+            for begin in range(keep, prompt_tokens - 1, self._PREFILL_CHUNK):
+                end = min(begin + self._PREFILL_CHUNK, prompt_tokens - 1)
+                self._model(
+                    input_ids=torch.tensor([input_ids[begin:end]], device=self._device),
+                    past_key_values=self._cache,
+                    cache_position=torch.arange(begin, end, device=self._device),
+                    use_cache=True,
+                    logits_to_keep=1,
+                )
+
+            input_tensor = torch.tensor([input_ids], dtype=torch.long, device=self._device)
+            output = self._model.generate(
+                input_tensor,
+                attention_mask=torch.ones_like(input_tensor),
+                past_key_values=self._cache,
+                max_new_tokens=self._config.max_new_tokens,
+                do_sample=self._config.do_sample,
+                pad_token_id=self._pad_token_id,
+                use_cache=True,
+            )
+        latency_s = time.perf_counter() - start
+        # The cache now also holds generated tokens; the next call crops them
+        # away, since they are never part of a shared prompt prefix.
+        self._cached_ids = input_ids
+
+        new_token_ids = output[0][prompt_tokens:].tolist()
+        text = self._tokenizer.decode(new_token_ids, skip_special_tokens=True).strip()
+        return RawResponse(
+            text=text,
+            prompt_tokens=prompt_tokens,
+            response_tokens=len(new_token_ids),
+            latency_s=latency_s,
+        )

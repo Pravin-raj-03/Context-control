@@ -64,6 +64,13 @@ class DeltaContextConfig(BaseModel):
     cached in observe(), so no extra embedding cost) instead of only the
     checkpoint pool -- matches RetrievalPolicy's recall. Set False for the
     cheaper checkpoint-only search (V1.1 behaviour)."""
+    segment_prior_weight: float = Field(default=0.0, ge=0.0)
+    """Full-history search only: add this weight times the query's similarity
+    to each turn's *topic segment* (the turns between consecutive checkpoints,
+    as one centroid) to the turn's own similarity. A turn inside a segment that
+    is about the question outranks an equally similar turn in an unrelated
+    one. 0 disables it (pure per-turn relevance, V1.2 behaviour); this is the
+    one ranking signal plain retrieval has no equivalent for."""
 
     # -- context-rot diagnostic (independent of the checkpoint trigger) --
     rot_ema_alpha: float = Field(default=0.2, gt=0.0, le=1.0)
