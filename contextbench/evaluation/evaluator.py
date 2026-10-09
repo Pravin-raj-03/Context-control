@@ -14,6 +14,7 @@ from typing import Sequence
 
 from contextbench.core.registry import Registry
 from contextbench.engine.conversation_runner import QAPrediction
+from contextbench.evaluation.abstention import is_abstention
 from contextbench.evaluation.exact_match import exact_match_score
 from contextbench.evaluation.f1 import f1_score
 from contextbench.evaluation.metrics import AggregateMetrics, ScoredPrediction, aggregate
@@ -26,6 +27,9 @@ class EvaluationReport:
     overall: AggregateMetrics
     by_category: dict[int | None, AggregateMetrics]
     scored: tuple[ScoredPrediction, ...]
+    adversarial: AggregateMetrics | None = None
+    """Aggregate over adversarial probes when the evaluator scores them
+    separately from :attr:`overall` (``None`` otherwise)."""
 
 
 class Evaluator(ABC):
@@ -58,19 +62,57 @@ class QAEvaluator(Evaluator):
             prediction=prediction,
             exact_match=exact_match_score(prediction.prediction, prediction.gold_answer),
             f1=f1_score(prediction.prediction, prediction.gold_answer),
+            abstained=is_abstention(prediction.prediction),
         )
 
     def evaluate(self, predictions: Sequence[QAPrediction]) -> EvaluationReport:
         """Score all predictions and aggregate overall and per category."""
         scored = tuple(self.score_one(p) for p in predictions)
-
-        by_category: dict[int | None, AggregateMetrics] = {}
-        for category in {s.prediction.category for s in scored}:
-            subset = [s for s in scored if s.prediction.category == category]
-            by_category[category] = aggregate(subset)
-
         return EvaluationReport(
             overall=aggregate(scored),
-            by_category=by_category,
+            by_category=_by_category(scored),
             scored=scored,
         )
+
+
+@register_evaluator("locomo_qa")
+class LoCoMoQAEvaluator(QAEvaluator):
+    """LoCoMo scoring: EM/F1 on answerable probes, abstention on adversarial ones.
+
+    An adversarial probe's gold is the trap answer (see
+    :mod:`contextbench.evaluation.abstention`), so it scores 1.0 for both EM and
+    F1 exactly when the model abstains, matching LoCoMo's own evaluation.
+    Adversarial probes are reported in :attr:`EvaluationReport.adversarial` and
+    under their own category, and kept out of :attr:`EvaluationReport.overall`
+    so the headline F1 is over answerable questions only (the convention in
+    the LoCoMo memory literature).
+    """
+
+    def score_one(self, prediction: QAPrediction) -> ScoredPrediction:
+        if not prediction.adversarial:
+            return super().score_one(prediction)
+        abstained = is_abstention(prediction.prediction)
+        return ScoredPrediction(
+            prediction=prediction,
+            exact_match=float(abstained),
+            f1=float(abstained),
+            abstained=abstained,
+        )
+
+    def evaluate(self, predictions: Sequence[QAPrediction]) -> EvaluationReport:
+        scored = tuple(self.score_one(p) for p in predictions)
+        answerable = [s for s in scored if not s.prediction.adversarial]
+        adversarial = [s for s in scored if s.prediction.adversarial]
+        return EvaluationReport(
+            overall=aggregate(answerable),
+            by_category=_by_category(scored),
+            scored=scored,
+            adversarial=aggregate(adversarial) if adversarial else None,
+        )
+
+
+def _by_category(scored: Sequence[ScoredPrediction]) -> dict[int | None, AggregateMetrics]:
+    by_category: dict[int | None, AggregateMetrics] = {}
+    for category in {s.prediction.category for s in scored}:
+        by_category[category] = aggregate([s for s in scored if s.prediction.category == category])
+    return by_category

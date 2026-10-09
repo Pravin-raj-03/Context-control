@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _CSV_COLUMNS = [
-    "sample_id", "qa_id", "category", "budget", "exact_match", "f1",
-    "context_tokens", "context_messages", "dropped_messages",
+    "sample_id", "qa_id", "category", "adversarial", "budget", "exact_match", "f1",
+    "abstained", "evidence_recall", "context_tokens", "context_messages", "dropped_messages",
     "prompt_tokens", "response_tokens", "latency_s",
     "question", "gold_answer", "prediction",
 ]
@@ -127,6 +127,8 @@ class ExperimentLogger:
                 )
             },
         }
+        if report.adversarial is not None:
+            payload["adversarial"] = dataclasses.asdict(report.adversarial)
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return path
 
@@ -145,6 +147,7 @@ class ExperimentLogger:
             for scored in report.scored:
                 record = self._row(scored)
                 record["policy_meta"] = dict(scored.prediction.policy_meta)
+                record["context_turn_ids"] = list(scored.prediction.context_turn_ids)
                 handle.write(json.dumps(record, default=str) + "\n")
         return path
 
@@ -155,9 +158,12 @@ class ExperimentLogger:
             "sample_id": p.sample_id,
             "qa_id": p.qa_id,
             "category": p.category,
+            "adversarial": p.adversarial,
             "budget": p.budget,
             "exact_match": scored.exact_match,
             "f1": scored.f1,
+            "abstained": scored.abstained,
+            "evidence_recall": p.evidence_recall,
             "context_tokens": p.context_tokens,
             "context_messages": p.context_messages,
             "dropped_messages": p.dropped_messages,

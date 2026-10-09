@@ -75,6 +75,12 @@ class ExperimentConfig(BaseModel):
     question_template: str = (
         "Conversation:\n{transcript}\n\nQuestion: {question}\nAnswer:"
     )
+    render_session_dates: bool = False
+    """Prefix each transcript line with its session date (counted against the
+    budget). Needed for temporal questions to be answerable at all."""
+    generate: bool = True
+    """``False`` runs selection only: every policy context is built and its
+    evidence recall recorded, but the model is never loaded or called."""
     log_level: str = "INFO"
 
 

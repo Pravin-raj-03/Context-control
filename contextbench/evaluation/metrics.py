@@ -20,6 +20,7 @@ class ScoredPrediction:
     prediction: QAPrediction
     exact_match: float
     f1: float
+    abstained: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +36,12 @@ class AggregateMetrics:
     avg_prompt_tokens: float
     avg_response_tokens: float
     avg_latency_s: float
+    evidence_recall: float | None = None
+    """Mean evidence recall over predictions that have reachable evidence, or
+    ``None`` if none do."""
+    abstention_rate: float = 0.0
+    """Fraction of predictions that decline to answer. On adversarial probes
+    this is the success rate; on answerable ones it is over-abstention."""
 
     @classmethod
     def empty(cls) -> AggregateMetrics:
@@ -51,6 +58,9 @@ def aggregate(scored: Sequence[ScoredPrediction]) -> AggregateMetrics:
     def mean(value) -> float:
         return sum(value(s) for s in scored) / n
 
+    recalls = [s.prediction.evidence_recall for s in scored
+               if s.prediction.evidence_recall is not None]
+
     return AggregateMetrics(
         n=n,
         exact_match=mean(lambda s: s.exact_match),
@@ -61,4 +71,6 @@ def aggregate(scored: Sequence[ScoredPrediction]) -> AggregateMetrics:
         avg_prompt_tokens=mean(lambda s: s.prediction.prompt_tokens),
         avg_response_tokens=mean(lambda s: s.prediction.response_tokens),
         avg_latency_s=mean(lambda s: s.prediction.latency_s),
+        evidence_recall=sum(recalls) / len(recalls) if recalls else None,
+        abstention_rate=mean(lambda s: float(s.abstained)),
     )

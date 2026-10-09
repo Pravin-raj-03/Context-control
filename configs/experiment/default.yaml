@@ -1,4 +1,6 @@
-# Run-level settings shared across all components.
+# v1 evaluation setup, kept only to reproduce runs made before 2026-10-09.
+# It grades adversarial questions against their trap answers and omits session
+# dates; use experiment=locomo_v2 (the default) for new runs.
 name: default
 output_dir: experiments/results
 qa_timing: end          # Phase 1: run QA after the full conversation is replayed.

@@ -104,6 +104,12 @@ def print_summary(
     print(f"predictions : {o.n}")
     print(f"exact match : {o.exact_match:.4f}")
     print(f"F1          : {o.f1:.4f}")
+    if o.evidence_recall is not None:
+        print(f"evid. recall: {o.evidence_recall:.4f}")
+    if report.adversarial is not None:
+        a = report.adversarial
+        print(f"adversarial : n={a.n}  abstained={a.abstention_rate:.3f}  "
+              "(scored separately, not in F1 above)")
     print(f"avg context : {o.avg_context_tokens:.1f} tokens / "
           f"{o.avg_context_messages:.1f} msgs (dropped {o.avg_dropped_messages:.1f})")
     print(f"avg latency : {o.avg_latency_s:.2f}s   wall: {s.total_wall_s:.1f}s")
@@ -116,8 +122,10 @@ def print_summary(
         for category, metrics in sorted(
             report.by_category.items(), key=lambda kv: (kv[0] is None, kv[0])
         ):
+            recall = ("" if metrics.evidence_recall is None
+                      else f"  recall={metrics.evidence_recall:.3f}")
             print(f"    cat {str(category):>4}  n={metrics.n:<4}  "
-                  f"EM={metrics.exact_match:.3f}  F1={metrics.f1:.3f}")
+                  f"EM={metrics.exact_match:.3f}  F1={metrics.f1:.3f}{recall}")
 
     if n_examples:
         print("-" * 68)

@@ -75,7 +75,7 @@ class BenchmarkEngine:
         config: BenchmarkConfig,
         dataset: Dataset,
         policy: ContextPolicy,
-        model: ModelBackend,
+        model: ModelBackend | None,
         runner: ConversationRunner,
         evaluator: Evaluator,
     ) -> None:
@@ -104,7 +104,7 @@ class BenchmarkEngine:
             logger.info("Pre-loading SentenceTransformer to bypass initialization crash")
             SentenceTransformer(config.policy.embedder_model, device=config.policy.embedder_device)
 
-        formatter = TranscriptFormatter()
+        formatter = TranscriptFormatter(include_dates=config.experiment.render_session_dates)
         logger.info("Loading tokenizer '%s'", config.model.hf_id)
         tokenizer = TokenizerWrapper.from_config(config.model, formatter=formatter)
 
@@ -118,8 +118,14 @@ class BenchmarkEngine:
         dataset = DATASET_REGISTRY.create(config.dataset.name, config.dataset)
         policy = POLICY_REGISTRY.create(config.policy.name, config.policy, tokenizer)
 
-        logger.info("Loading model backend '%s' (%s)", config.model.backend, config.model.hf_id)
-        model = MODEL_REGISTRY.create(config.model.backend, config.model, tokenizer)
+        model: ModelBackend | None = None
+        if config.experiment.generate:
+            logger.info(
+                "Loading model backend '%s' (%s)", config.model.backend, config.model.hf_id
+            )
+            model = MODEL_REGISTRY.create(config.model.backend, config.model, tokenizer)
+        else:
+            logger.info("Selection-only run: model not loaded, no generation")
         replayer = ConversationReplayer(config.experiment.qa_timing)
         runner = ConversationRunner(
             policy=policy,
@@ -173,8 +179,10 @@ class BenchmarkEngine:
         """
         report = self._evaluator.evaluate(result.predictions)
         logger.info(
-            "Scored %d predictions: EM=%.3f F1=%.3f",
+            "Scored %d predictions: EM=%.3f F1=%.3f evidence_recall=%s",
             report.overall.n, report.overall.exact_match, report.overall.f1,
+            "n/a" if report.overall.evidence_recall is None
+            else f"{report.overall.evidence_recall:.3f}",
         )
         return report
 
@@ -184,8 +192,8 @@ class BenchmarkEngine:
         return self._config
 
     @property
-    def model(self) -> ModelBackend:
-        """The loaded model backend (shared across the run)."""
+    def model(self) -> ModelBackend | None:
+        """The loaded model backend (shared across the run); ``None`` if selection-only."""
         return self._model
 
     # -- internals -------------------------------------------------------------

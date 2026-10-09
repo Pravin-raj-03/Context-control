@@ -8,7 +8,7 @@ defaults:
   - model: tinyllama
   - policy: sliding_window
   - dataset: locomo
-  - experiment: default
+  - experiment: locomo_v2
   - _self_
 
 # Token budget for the *selected context* (not the full prompt). Sweepable, e.g.

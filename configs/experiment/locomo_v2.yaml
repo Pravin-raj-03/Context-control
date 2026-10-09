@@ -1,0 +1,26 @@
+# Corrected LoCoMo evaluation (the default). Differences from `default` (v1,
+# kept only to reproduce runs made before 2026-10-09):
+#   - render_session_dates: each transcript line carries its session date, so
+#     temporal questions are answerable; the date tokens count against the budget.
+#   - evaluator locomo_qa: adversarial (category 5) probes are scored on
+#     abstention, as in LoCoMo's own evaluation, and kept out of the headline F1.
+#     v1 graded them against `adversarial_answer`, the trap answer.
+#   - a short-answer prompt; v1's free-form answers scored EM = 0 on every probe.
+name: locomo_v2
+output_dir: experiments/results
+qa_timing: end
+evaluator: locomo_qa
+render_session_dates: true
+generate: true          # false = selection-only: evidence recall, no model
+system_prompt: >-
+  You are a helpful assistant answering questions about a long conversation.
+  Answer using only information from the conversation.
+question_template: |-
+  Conversation:
+  {transcript}
+
+  Each line starts with the date of its session. Answer the question with a short phrase, using words from the conversation where possible. For questions about when something happened, answer with a date, working out relative times such as "last week" from the date of the line that mentions them. If the conversation does not contain the answer, reply exactly: Not mentioned in the conversation.
+
+  Question: {question}
+  Short answer:
+log_level: INFO
