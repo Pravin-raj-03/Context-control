@@ -214,7 +214,9 @@ class PrefixCachedHFCausalLM(HFCausalLM):
     a policy whose context is stable across questions gets more cache reuse.
     """
 
-    _PREFILL_CHUNK = 2048
+    # 512 keeps prefill attention scores small enough that a ~30K-token prompt
+    # still fits beside a 3B bf16 model on 8 GB, even without a fused kernel.
+    _PREFILL_CHUNK = 512
 
     def __init__(self, config: ModelConfig, tokenizer: TokenizerWrapper) -> None:
         super().__init__(config, tokenizer)
