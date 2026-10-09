@@ -61,7 +61,7 @@ class TokenizerWrapper:
         self._hf_id = hf_id
         self._formatter = formatter or TranscriptFormatter()
         self._tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(
-            hf_id, trust_remote_code=trust_remote_code, revision=revision
+            hf_id, trust_remote_code=trust_remote_code, revision=revision, use_fast=False
         )
 
     @classmethod

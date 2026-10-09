@@ -13,10 +13,20 @@ so both are provided behind one interface:
 * **Displacement**:
   :math:`A_t = d(C_{\text{checkpoint}}, C_t)`. Net movement from the checkpoint;
   returns toward 0 if the conversation comes back.
+* **EMA** (decayed):
+  :math:`A_t = \alpha \delta_t + (1-\alpha) A_{t-1}`, *not* reset at
+  checkpoints. Unlike Sum (monotonic within a segment) or Displacement
+  (relative to one reference), the EMA tracks the *current level* of semantic
+  activity — it rises quickly on a real shift and decays back down through a
+  quiet stretch. A value that stays near zero across many turns is a direct,
+  literal read of **context rot**: the conversation isn't semantically
+  progressing. This is the accumulator :class:`~contextbench.policies.delta_context.DeltaContextPolicy`
+  uses for its stagnation diagnostic, independent of whichever accumulator
+  drives checkpoint triggering.
 
 Complexity: Sum is :math:`O(1)`; Displacement is one metric evaluation,
-:math:`O(d)`. Intended future siblings: decayed (EMA) accumulation, or variance-
-based change energy.
+:math:`O(d)`; EMA is :math:`O(1)`. Intended future siblings: variance-based
+change energy.
 """
 
 from __future__ import annotations
@@ -108,6 +118,42 @@ class DisplacementAccumulator(SemanticChangeAccumulator):
 
     def reset(self, checkpoint_state: SemanticState | None = None) -> None:
         self._reference = checkpoint_state
+        self._value = 0.0
+
+    @property
+    def value(self) -> float:
+        return self._value
+
+
+@register_accumulator("ema")
+class EMAAccumulator(SemanticChangeAccumulator):
+    r"""Decayed accumulation: :math:`A_t = \alpha \delta_t + (1-\alpha) A_{t-1}`.
+
+    Behaves like Sum/Displacement as a pluggable trigger (resets to 0 on
+    ``reset()``, so it's a drop-in ``accumulator: ema`` config choice) but
+    damps single-turn noise instead of reacting to every ``delta_t`` — useful
+    when Sum over-triggers because ordinary turn-to-turn chatter already
+    exceeds ``ignore_below`` most turns.
+
+    ``DeltaContextPolicy`` also runs an independent, *never-reset* EMA of its
+    own (see its ``_rot_ema`` state) as a context-rot diagnostic — that one is
+    deliberately not this class, since "should I checkpoint" (segment-local,
+    reset at each checkpoint) and "is the conversation semantically
+    flatlining" (needs to see across checkpoints) are different questions that
+    happen to share the same smoothing formula.
+    """
+
+    def __init__(self, alpha: float = 0.3) -> None:
+        if not 0.0 < alpha <= 1.0:
+            raise ValueError(f"alpha must be in (0, 1], got {alpha}.")
+        self._alpha = alpha
+        self._value = 0.0
+
+    def update(self, delta: float, current: SemanticState) -> float:
+        self._value = self._alpha * delta + (1.0 - self._alpha) * self._value
+        return self._value
+
+    def reset(self, checkpoint_state: SemanticState | None = None) -> None:
         self._value = 0.0
 
     @property

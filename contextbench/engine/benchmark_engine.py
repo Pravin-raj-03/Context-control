@@ -98,16 +98,28 @@ class BenchmarkEngine:
         The model and tokenizer are loaded here, once, and shared with the
         policy (token counting) and the runner (generation).
         """
+        # HACK: Pre-load SentenceTransformer before AutoTokenizer to prevent Windows/CUDA crashes
+        if hasattr(config.policy, "embedder_model") and config.policy.embedder_model:
+            from sentence_transformers import SentenceTransformer
+            logger.info("Pre-loading SentenceTransformer to bypass initialization crash")
+            SentenceTransformer(config.policy.embedder_model, device=config.policy.embedder_device)
+
         formatter = TranscriptFormatter()
         logger.info("Loading tokenizer '%s'", config.model.hf_id)
         tokenizer = TokenizerWrapper.from_config(config.model, formatter=formatter)
 
-        logger.info("Loading model backend '%s' (%s)", config.model.backend, config.model.hf_id)
-        model = MODEL_REGISTRY.create(config.model.backend, config.model, tokenizer)
+        import torch
+        if torch.cuda.is_available():
+            logger.info("CUDA DETECTED: Running on GPU (%s)", torch.cuda.get_device_name(0))
+        else:
+            logger.warning("NO CUDA DETECTED: Running on CPU. This will be very slow.")
 
         prompt_builder = PromptBuilder.from_config(config.experiment, formatter)
         dataset = DATASET_REGISTRY.create(config.dataset.name, config.dataset)
         policy = POLICY_REGISTRY.create(config.policy.name, config.policy, tokenizer)
+
+        logger.info("Loading model backend '%s' (%s)", config.model.backend, config.model.hf_id)
+        model = MODEL_REGISTRY.create(config.model.backend, config.model, tokenizer)
         replayer = ConversationReplayer(config.experiment.qa_timing)
         runner = ConversationRunner(
             policy=policy,

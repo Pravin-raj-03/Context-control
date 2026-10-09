@@ -12,7 +12,7 @@ echo "=========================================================="
 
 # We use Hydra's multirun flag (-m) to automatically iterate over the combinations.
 # Adjust the budget list or policy list as needed.
-python benchmark.py -m policy=sliding_window,summary,retrieval,delta_context budget=256,512,1024
+python benchmark.py -m policy=retrieval,delta_context budget=256,512,1024
 
 echo "=========================================================="
 echo "Sweep Complete! Check the outputs directory for results."

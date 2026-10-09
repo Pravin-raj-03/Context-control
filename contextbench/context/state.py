@@ -87,7 +87,8 @@ class StateConstructor(ABC):
 
     @abstractmethod
     def update(
-        self, text: str, *, turn_index: int, token_count: int, timestamp: float
+        self, text: str, *, turn_index: int, token_count: int, timestamp: float,
+        embedding: np.ndarray | None = None,
     ) -> SemanticState:
         """Ingest one turn and return the new semantic state.
 
@@ -96,6 +97,9 @@ class StateConstructor(ABC):
             turn_index: 0-based turn index.
             token_count: Token count of this turn (from the shared TokenCounter).
             timestamp: Monotonic timestamp for the turn.
+            embedding: A precomputed single-turn embedding for ``text``, to avoid
+                re-embedding when the caller already needed one. Implementations
+                that don't support reuse may ignore this and recompute.
         """
         raise NotImplementedError
 
@@ -145,9 +149,23 @@ class WindowedCentroidConstructor(StateConstructor):
         self._current: SemanticState | None = None
 
     def update(
-        self, text: str, *, turn_index: int, token_count: int, timestamp: float
+        self, text: str, *, turn_index: int, token_count: int, timestamp: float,
+        embedding: np.ndarray | None = None,
     ) -> SemanticState:
-        embedding = np.asarray(self._embedder.embed(text), dtype=np.float32)
+        """Ingest one turn and return the new windowed-centroid state.
+
+        Args:
+            embedding: A precomputed single-turn embedding for ``text``, when the
+                caller already needs it for something else (e.g.
+                :class:`~contextbench.policies.delta_context.DeltaContextPolicy`'s
+                per-turn embedding cache for query-aware search) and wants to
+                avoid embedding the same text twice. Recomputed from ``text`` if
+                omitted.
+        """
+        if embedding is None:
+            embedding = np.asarray(self._embedder.embed(text), dtype=np.float32)
+        else:
+            embedding = np.asarray(embedding, dtype=np.float32)
         self._buffer.append((embedding, token_count))
 
         stacked = np.stack([e for e, _ in self._buffer])

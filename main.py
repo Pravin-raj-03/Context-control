@@ -14,6 +14,13 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
+
+# Prevent TensorFlow and JAX from loading and taking over GPU memory,
+# which causes silent crashes when SentenceTransformers is initialized.
+os.environ["USE_TF"] = "0"
+os.environ["USE_JAX"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 from contextbench.cli import compose_config, print_summary, run_experiment
 

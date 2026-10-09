@@ -62,6 +62,19 @@ def test_window_slides_and_aggregates_tokens(embedder):
     assert state.token_count == 50
 
 
+def test_update_reuses_precomputed_embedding_instead_of_reembedding(embedder):
+    """Passing `embedding=` must be used as-is, not overridden by re-embedding
+    `text` -- this is what lets DeltaContextPolicy cache one embedding per turn
+    and reuse it for both the windowed-centroid state and query-aware search."""
+    c = WindowedCentroidConstructor(embedder, window=1)
+    decoy = np.zeros(embedder.dim, dtype=np.float32)
+    decoy[0] = 1.0
+    state = c.update("this text is never embedded", turn_index=0, token_count=1,
+                     timestamp=0.0, embedding=decoy)
+    assert np.array_equal(state.embedding, decoy)
+    assert not np.allclose(state.embedding, embedder.embed("this text is never embedded"))
+
+
 def test_reset_clears_state(embedder):
     c = WindowedCentroidConstructor(embedder, window=2)
     c.update("x", turn_index=0, token_count=1, timestamp=0.0)

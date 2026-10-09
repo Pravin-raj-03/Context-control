@@ -1,4 +1,29 @@
 name: delta_context
-# The fraction of the budget reserved for checkpoint anchor turns (landmarks)
-landmark_fraction: 0.3
-# Use defaults for everything else (thresholds, metric, etc.)
+embedder_model: sentence-transformers/all-MiniLM-L6-v2
+embedder_device: cpu
+# The fraction of the budget reserved for checkpoint anchor turns (landmarks).
+# Swept on a fast dev subset (scripts/calibrate_delta.py picks thresholds;
+# this fraction was swept directly via benchmark.py): 0.3 -> 0.5 -> 0.65 gave
+# F1 0.0425 -> 0.0500 -> 0.0440 -- 0.5 is the local peak. Below it, landmarks
+# (now query-ranked, not just recency-ranked) are too budget-starved to help;
+# above it, the recency tail is too budget-starved instead.
+landmark_fraction: 0.5
+query_aware_landmarks: true
+# Rank landmarks against every observed turn (embeddings already cached in
+# observe(), so this is free), not just the sparse checkpoint pool. This is
+# what closed most of the gap to RetrievalPolicy's full-history recall.
+expand_landmark_search: true
+
+# --- Controller thresholds, calibrated from data (scripts/calibrate_delta.py) ---
+# The old defaults (change_threshold=0.5 class default, 0.2 as commonly swept)
+# fired a checkpoint every ~2.5 turns (40% of ALL turns) on LoCoMo with this
+# embedder+window -- noise-level churn, not topic boundaries, and most of
+# those checkpoints never survived into the landmark budget anyway. Measuring
+# the actual delta_t distribution (mean 0.105, p15 ~0.07) and simulating
+# checkpoint frequency across thresholds shows change_threshold=2.0 lands
+# checkpoints ~1 every 20 turns -- a plausible topic-boundary rate. Re-run the
+# calibration script if you change the embedder, window, or dataset.
+change_threshold: 2.0
+ignore_below: 0.07
+min_snapshot_gap: 3
+accumulator: sum
