@@ -47,7 +47,11 @@ def method_label(config: dict) -> str:
         return "Extractive summary"
     if name == "retrieval":
         if k:
-            return f"{SOURCE_LABELS[p.get('segment_source', 'fixed')]} store (top-{k})"
+            source = p.get("segment_source", "fixed")
+            label = SOURCE_LABELS[source]
+            if source == "fixed":
+                label += f" ({p.get('segment_turns', 20)} turns)"
+            return f"{label} store (top-{k})"
         if p.get("segment_prior_weight"):
             return "RAG + chunk prior"
         return "RAG, turn-level" if p.get("retrieval_fraction") == 1.0 else "RAG + recency tail (50/50)"
@@ -262,7 +266,9 @@ def main() -> None:
     # Stage-1 topic ranking does not depend on k, so hit@1 and hit@3 both come
     # from the top-3 runs.
     ours_store = f"{OURS_PREFIX} store (top-3)"
-    store_rows = [ours_store] + [f"{label} store (top-3)" for label in SOURCE_LABELS.values()]
+    store_rows = [ours_store] + [f"{label} store (top-3)" for label in SOURCE_LABELS.values()
+                                 if label != "Fixed-size chunks"] + [
+        f"Fixed-size chunks ({n} turns) store (top-3)" for n in (5, 10)]
     ablation_rows = [ours_store, f"{OURS_PREFIX} store (top-3) (no localization)",
                      f"{OURS_PREFIX} store (top-3) (path-length detector)"]
     for name, root, budget in (("LongMemEval-S topic store", "experiments/lme_topic", 2048),
@@ -304,6 +310,32 @@ def main() -> None:
         for method, m in data["test_results"].items():
             sections.append(f"| {method} | {m['pk']:.3f} | {m['windowdiff']:.3f} | {m['p@1']:.3f} | "
                             f"{m['r@1']:.3f} | {m['f1@1']:.3f} | {m['f1@0']:.3f} | {m['segments']:.1f} |")
+        sections.append("")
+
+    scaling_path = Path("paper/results/scaling_lme.json")
+    if scaling_path.is_file():
+        data = json.loads(scaling_path.read_text(encoding="utf-8"))["results"]
+        sizes = sorted(data, key=int)
+        methods = [m for m in data[sizes[0]] if m != "Full scan (turn-level)"]
+        raw = {(d, m, metric): data[d][m]["vs_delta_context"][metric]["p_mcnemar"]
+               for d in sizes for m in methods if "vs_delta_context" in data[d][m]
+               for metric in ("hit@1", "hit@3")}
+        adjusted = holm(raw)
+        sections += ["### Scaling: LongMemEval-S store grown with distractor histories", "",
+                     "Topic hit@1 / hit@3 (comparisons per question). Stars: exact McNemar on "
+                     "hit@3 vs ΔContext, Holm-adjusted over the whole table.", "",
+                     "| Turns | " + " | ".join(methods) + " | Full scan |",
+                     "|" + "---|" * (len(methods) + 2)]
+        for d in sizes:
+            cells = []
+            for m in methods:
+                v = data[d][m]
+                p = adjusted.get((d, m, "hit@3"))
+                stars = "" if p is None else "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+                cells.append(f"{v['hit@1']:.3f} / {v['hit@3']:.3f}{stars} ({v['comparisons']:.0f})")
+            full = data[d]["Full scan (turn-level)"]
+            sections.append(f"| {data[d]['ΔContext']['turns']:.0f} | " + " | ".join(cells)
+                            + f" | ({full['comparisons']:.0f}) |")
         sections.append("")
 
     (args.out / "RESULTS_TABLES.md").write_text("\n".join(sections), encoding="utf-8")

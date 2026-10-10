@@ -1,0 +1,14 @@
+\begin{tabular}{lrrrrr}
+\toprule
+Method & hit@1 & hit@3 & topic_recall & evidence_recall & searched \\
+\midrule
+\textbf{$\Delta$Context store (top-3)} & 0.749 & 0.917 & 0.716 & 0.717 & 17.0 \\
+Session oracle store (top-3) & 0.785 & 0.926 & 0.733 & 0.734 & 16.5 \\
+Adjacent threshold store (top-3) & 0.728 & 0.900 & 0.699 & 0.708 & 19.1 \\
+Semantic chunking store (top-3) & 0.721 & 0.904 & 0.704 & 0.717 & 18.4 \\
+TextTiling store (top-3) & 0.711 & 0.894 & 0.696 & 0.711 & 19.1 \\
+Fixed-size chunks (5 turns) store (top-3) & 0.457$^{*}$$^{*}$$^{*}$ & 0.736$^{*}$$^{*}$$^{*}$ & 0.534$^{*}$$^{*}$$^{*}$ & 0.581$^{*}$$^{*}$$^{*}$ & 23.1 \\
+Fixed-size chunks (10 turns) store (top-3) & 0.543$^{*}$$^{*}$$^{*}$ & 0.813$^{*}$$^{*}$$^{*}$ & 0.601$^{*}$$^{*}$$^{*}$ & 0.601$^{*}$$^{*}$$^{*}$ & 16.2 \\
+RAG, turn-level & -- & -- & 0.774$^{*}$$^{*}$$^{*}$ & 0.774$^{*}$$^{*}$$^{*}$ & 100.0 \\
+\bottomrule
+\end{tabular}

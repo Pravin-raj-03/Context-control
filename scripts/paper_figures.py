@@ -36,7 +36,8 @@ from scripts.paper_tables import METRICS, answerable, load_runs, mean_metric
 SURFACE, TEXT, TEXT_2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 SERIES = [  # (label prefix in run names, legend label, color, marker)
     ("ΔContext store", "ΔContext (ours)", "#2a78d6", "o"),
-    ("Fixed-size chunks store", "Fixed-size chunks", "#eb6834", "s"),
+    (("Fixed-size chunks (10 turns) store", "Fixed-size chunks (5 turns) store"),
+     "Fixed-size chunks", "#eb6834", "s"),
     ("Semantic chunking store", "Semantic chunking", "#1baf7a", "^"),
     ("TextTiling store", "TextTiling", "#eda100", "D"),
     ("Adjacent threshold store", "Adjacent threshold", "#e87ba4", "v"),
@@ -55,27 +56,46 @@ def style() -> None:
     })
 
 
-def mark(ax, xs, ys, color, marker, label, dashed=False):
+def _prefix(runs, prefixes, budget, k):
+    """First run-name prefix (of one or several) that has a top-k run."""
+    for prefix in (prefixes if isinstance(prefixes, tuple) else (prefixes,)):
+        if (f"{prefix} (top-{k})", budget) in runs:
+            return prefix
+    return None
+
+
+def _legend(label, prefix):
+    """Fixed chunks name their size, which differs by which runs exist."""
+    if prefix and prefix.startswith("Fixed-size chunks ("):
+        return prefix.removesuffix(" store")
+    return label
+
+
+def mark(ax, xs, ys, color, marker, label, dashed=False, label_below=False, direct=True):
     """A 2px series line with ringed markers; only ours is direct-labelled
     (the legend and marker shapes identify the rest without collisions)."""
     ours = label.startswith("ΔContext")
     ax.plot(xs, ys, color=color, marker=marker, markersize=7, markeredgecolor=SURFACE,
             markeredgewidth=1.5, linestyle="--" if dashed else "-", label=label,
             zorder=4 if ours else 3)
-    if ours:
-        ax.annotate(label, (xs[-1], ys[-1]), xytext=(6, 4), textcoords="offset points",
-                    va="bottom", fontsize=8, color=TEXT, fontweight="bold")
+    if ours and direct:
+        ax.annotate(label, (xs[-1], ys[-1]), xytext=(6, -6 if label_below else 4),
+                    textcoords="offset points", va="top" if label_below else "bottom",
+                    fontsize=8, color=TEXT, fontweight="bold")
 
 
 def cost_recall(runs, budget, out: Path) -> None:
     fig, ax = plt.subplots(figsize=(6.2, 3.6))
-    for prefix, label, color, marker in SERIES:
+    for prefixes, label, color, marker in SERIES:
+        prefix = _prefix(runs, prefixes, budget, 1)
+        if prefix is None:
+            continue
         points = [(mean_metric(runs[(f"{prefix} (top-{k})", budget)], "searched"),
                    mean_metric(runs[(f"{prefix} (top-{k})", budget)], "topic_recall"))
                   for k in (1, 3, 5) if (f"{prefix} (top-{k})", budget) in runs]
-        if points:
-            xs, ys = zip(*points)
-            mark(ax, [100 * x for x in xs], ys, color, marker, label, dashed="oracle" in label)
+        xs, ys = zip(*points)
+        mark(ax, [100 * x for x in xs], ys, color, marker, _legend(label, prefix),
+             dashed="oracle" in label)
     full = runs.get(("RAG, turn-level", budget))
     if full:
         y = mean_metric(full, "evidence_recall")
@@ -101,16 +121,18 @@ def cost_recall(runs, budget, out: Path) -> None:
 def topic_hits(runs, budget, out: Path) -> None:
     fig, ax = plt.subplots(figsize=(6.2, 3.4))
     ks = [1, 2, 3, 4, 5]
-    for prefix, label, color, marker in SERIES:
-        records = runs.get((f"{prefix} (top-5)", budget))
-        if not records:
+    for prefixes, label, color, marker in SERIES:
+        prefix = _prefix(runs, prefixes, budget, 5)
+        if prefix is None:
             continue
+        records = runs[(f"{prefix} (top-5)", budget)]
+        label = _legend(label, prefix)
         ys = []
         for k in ks:
             values = [v for v in (METRICS["hit@1"](r) if k == 1 else _hit(r, k)
                                   for r in answerable(records)) if v is not None]
             ys.append(sum(values) / len(values))
-        mark(ax, ks, ys, color, marker, label, dashed="oracle" in label)
+        mark(ax, ks, ys, color, marker, label, dashed="oracle" in label, label_below=True)
     ax.set_xticks(ks)
     ax.set_xlabel("Topics returned (k)")
     ax.set_ylabel("Questions whose evidence topic is in the top k")
@@ -129,6 +151,37 @@ def _hit(record, k):
     if not evidence or not spans:
         return None
     return float(any(a <= e <= b for a, b in spans[:k] for e in evidence))
+
+
+def scaling(out: Path, path: Path = Path("paper/results/scaling_lme.json")) -> None:
+    """Topic hit@3 as the store grows with distractor histories."""
+    if not path.is_file():
+        return
+    data = json.loads(path.read_text(encoding="utf-8"))["results"]
+    sizes = sorted(data, key=int)
+    names = {"ΔContext": SERIES[0], "Fixed-size chunks": SERIES[1], "Semantic chunking": SERIES[2],
+             "TextTiling": SERIES[3], "Adjacent threshold": SERIES[4], "Session oracle": SERIES[5]}
+    fig, ax = plt.subplots(figsize=(6.2, 3.4))
+    for name, (_, label, color, marker) in names.items():
+        if name not in data[sizes[0]]:
+            continue
+        xs = [data[d][name]["turns"] for d in sizes]
+        ys = [data[d][name]["hit@3"] for d in sizes]
+        mark(ax, xs, ys, color, marker, "Fixed-size chunks" if name.startswith("Fixed") else label,
+             dashed="oracle" in label, direct=False)
+    ax.set_xscale("log")
+    ticks = [round(data[d]["ΔContext"]["turns"], -2) for d in sizes]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([f"{t / 1000:.1f}K" if t >= 1000 else f"{t:.0f}" for t in ticks])
+    ax.minorticks_off()
+    ax.set_xlabel("Turns in the store (own history + distractor histories, log scale)")
+    ax.set_ylabel("Questions whose evidence topic is in the top 3")
+    ax.set_title("LongMemEval-S: finding the right topic as the store grows", loc="left")
+    ax.legend(loc="lower left", fontsize=8)
+    fig.tight_layout()
+    for ext in ("pdf", "png"):
+        fig.savefig(out / f"scaling.{ext}", dpi=200)
+    plt.close(fig)
 
 
 def segmentation_example(out: Path, params: dict, index: int = 0) -> None:
@@ -194,6 +247,7 @@ def main() -> None:
     runs = load_runs(Path("experiments/lme_topic"))
     cost_recall(runs, args.budget, args.out)
     topic_hits(runs, args.budget, args.out)
+    scaling(args.out)
     if args.example:
         params = json.loads(Path("paper/results/seg_lme.json").read_text())["chosen_parameters"]
         segmentation_example(args.out, params)

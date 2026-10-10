@@ -43,6 +43,16 @@ import contextbench.datasets.longmemeval  # noqa: F401  (registration)
 from scripts.segmentation_report import _WordCounter, delta_boundaries
 
 
+def _mcnemar(b: int, c: int) -> float:
+    """Exact two-sided McNemar p-value from the two discordant counts."""
+    import math
+
+    n = b + c
+    if n == 0:
+        return 1.0
+    return min(1.0, 2 * sum(math.comb(n, i) for i in range(min(b, c) + 1)) / 2 ** n)
+
+
 def segment_ranking(matrix, boundaries, query):
     """Segments by centroid similarity (centroids precomputed), best first."""
     n = len(matrix)
@@ -63,7 +73,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--questions", type=int, default=100)
-    parser.add_argument("--distractors", type=int, nargs="+", default=[0, 3, 9, 19])
+    parser.add_argument("--distractors", type=int, nargs="+", default=[0, 3, 9, 19, 39])
     parser.add_argument("--dataset", type=Path, default=Path("configs/dataset/longmemeval_s.yaml"))
     parser.add_argument("--cache", default="data/cache/longmemeval_s_minilm.npz")
     parser.add_argument("--params", type=Path, default=Path("paper/results/seg_lme.json"))
@@ -111,6 +121,8 @@ def main() -> None:
                 "ΔContext": delta_boundaries(policy, messages),
                 "Fixed-size chunks": segmenters.fixed_boundaries(n, int(params["fixed"])),
                 "Semantic chunking": segmenters.semantic_chunker_boundaries(matrix, params["semantic_chunker"]),
+                "TextTiling": segmenters.texttiling_boundaries(matrix, int(params["texttiling"])),
+                "Adjacent threshold": segmenters.adjacent_threshold_boundaries(matrix, params["adjacent"]),
                 "Session oracle": [i for i in range(n - 1) if messages[i].session_id != messages[i + 1].session_id],
             }
             start = time.perf_counter()
@@ -118,7 +130,7 @@ def main() -> None:
             full_time = time.perf_counter() - start
             full_rank = int(min(np.flatnonzero(np.isin(full_order, evidence))))
             acc.setdefault("Full scan (turn-level)", []).append(
-                (np.nan, np.nan, full_rank, n, full_time, n))
+                (np.nan, np.nan, full_rank, n, full_time, n, sample.sample_id))
             for name, bounds in stores.items():
                 seg, order, ranked, comparisons, elapsed = segment_ranking(matrix, bounds, query)
                 ev_segs = set(seg[evidence].tolist())
@@ -126,24 +138,40 @@ def main() -> None:
                 hit3 = float(bool(ev_segs & set(order[:3].tolist())))
                 hits = np.flatnonzero(np.isin(ranked, evidence))
                 rank = int(hits[0]) if len(hits) else n
-                acc.setdefault(name, []).append((hit1, hit3, rank, comparisons, elapsed, n))
+                acc.setdefault(name, []).append((hit1, hit3, rank, comparisons, elapsed, n, sample.sample_id))
         results[str(d)] = {
             name: {
-                "hit@1": float(np.nanmean([r[0] for r in rows])),
-                "hit@3": float(np.nanmean([r[1] for r in rows])),
+                "hit@1": float(np.mean([r[0] for r in rows])) if name != "Full scan (turn-level)" else None,
+                "hit@3": float(np.mean([r[1] for r in rows])) if name != "Full scan (turn-level)" else None,
                 "median_evidence_rank": float(np.median([r[2] for r in rows])),
                 "comparisons": float(np.mean([r[3] for r in rows])),
                 "turns": float(np.mean([r[5] for r in rows])),
                 "ms_per_query": 1000 * float(np.mean([r[4] for r in rows])),
                 "questions": len(rows),
+                "per_question": {r[6]: {"hit@1": r[0], "hit@3": r[1], "rank": r[2]} for r in rows},
             } for name, rows in acc.items()
         }
+        ours = results[str(d)]["ΔContext"]["per_question"]
+        for name, m in results[str(d)].items():
+            if name in ("ΔContext", "Full scan (turn-level)"):
+                continue
+            tests = {}
+            for metric in ("hit@1", "hit@3"):
+                b = sum(1 for q, v in ours.items() if v[metric] == 1 and m["per_question"][q][metric] == 0)
+                c = sum(1 for q, v in ours.items() if v[metric] == 0 and m["per_question"][q][metric] == 1)
+                tests[metric] = {"delta_wins": b, "baseline_wins": c, "p_mcnemar": _mcnemar(b, c)}
+            m["vs_delta_context"] = tests
         print(f"\n== store = own history + {d} distractor histories "
               f"(~{results[str(d)]['ΔContext']['turns']:.0f} turns)", flush=True)
         for name, m in results[str(d)].items():
-            print(f"  {name:24s} hit@1 {m['hit@1']:.3f}  hit@3 {m['hit@3']:.3f}  "
+            test = m.get("vs_delta_context")
+            p = (f"  ΔC vs this: hit@1 p={test['hit@1']['p_mcnemar']:.4f}, "
+                 f"hit@3 p={test['hit@3']['p_mcnemar']:.4f}") if test else ""
+            h1 = "  -  " if m["hit@1"] is None else f"{m['hit@1']:.3f}"
+            h3 = "  -  " if m["hit@3"] is None else f"{m['hit@3']:.3f}"
+            print(f"  {name:24s} hit@1 {h1}  hit@3 {h3}  "
                   f"evidence rank {m['median_evidence_rank']:6.0f}  comparisons {m['comparisons']:7.0f}  "
-                  f"{m['ms_per_query']:.2f} ms", flush=True)
+                  f"{m['ms_per_query']:.2f} ms{p}", flush=True)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps({"parameters": params, "results": results}, indent=2), encoding="utf-8")
