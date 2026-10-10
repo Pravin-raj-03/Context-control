@@ -1,0 +1,9 @@
+# LongMemEval oracle: each question's history holds only the sessions that
+# contain its answer (median ~6K, max ~23K tokens with Qwen's tokenizer). With
+# the whole history in context it gives an upper bound for the -S runs.
+name: longmemeval
+path: data/longmemeval/longmemeval_oracle.json
+num_samples: null
+max_qa_per_sample: null
+qa_categories: null
+include_image_captions: true

@@ -42,6 +42,8 @@ def method_label(config: dict) -> str:
     p, budget = config["policy"], config["budget"]
     name, k = p["name"], p.get("topic_first_k", 0)
     if name == "sliding_window":
+        if "oracle" in str(config.get("dataset", {}).get("path", "")):
+            return "Evidence sessions only (oracle)"
         return "Full context (upper bound)" if budget >= 16000 else "Sliding window"
     if name == "summary":
         return "Extractive summary"
@@ -218,6 +220,7 @@ def tex_label(method: str) -> str:
         f"{OURS_PREFIX} store (top-3) (path-length detector)": r"\quad path-length detector",
         f"{OURS_PREFIX} turn ranking (v1.2)": r"$\Delta$Context v1.2 (turn ranking, 50/50)",
         "RAG, turn-level": "RAG, full scan (turn-level)",
+        "Evidence sessions only (oracle)": "Evidence sessions only (oracle upper bound)",
     }
     if method in names:
         return names[method]
@@ -297,6 +300,8 @@ def comparison_table(title, runs, budget, rows, metrics, ours, out_dir, stem, pc
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", type=Path, default=Path("paper"))
+    parser.add_argument("--include-locomo", action="store_true",
+                        help="Also build the LoCoMo tables (not part of the paper).")
     args = parser.parse_args()
     (args.out / "tables").mkdir(parents=True, exist_ok=True)
     sections = ["# ContextBench / ΔContext: result tables", "",
@@ -312,8 +317,12 @@ def main() -> None:
         f"Fixed-size chunks ({n} turns) store (top-3)" for n in (5, 10)]
     ablation_rows = [ours_store, f"{OURS_PREFIX} store (top-3) (no localization)",
                      f"{OURS_PREFIX} store (top-3) (path-length detector)"]
-    for name, root, budget in (("LongMemEval-S topic store", "experiments/lme_topic", 2048),
-                               ("LoCoMo topic store", "experiments/locomo_topic", 2048)):
+    topic_sets = [("LongMemEval-S topic store", "experiments/lme_topic", 2048)]
+    qa_sets = [("LongMemEval-S end-to-end QA (Qwen2.5-3B)", "experiments/lme_llm", 2048)]
+    if args.include_locomo:
+        topic_sets.append(("LoCoMo topic store", "experiments/locomo_topic", 2048))
+        qa_sets.insert(0, ("LoCoMo end-to-end QA (Qwen2.5-3B)", "experiments/v2_llm", 512))
+    for name, root, budget in topic_sets:
         if Path(root).is_dir():
             runs = load_runs(Path(root))
             stem = name.split()[0].lower()
@@ -326,21 +335,23 @@ def main() -> None:
                     name + " ablation", runs, budget, ablation_rows,
                     ["hit@1", "hit@3", "topic_recall"], ours_store, args.out, stem + "_ablation"))
 
-    for name, root, budget in (("LoCoMo end-to-end QA (Qwen2.5-3B)", "experiments/v2_llm", 512),
-                               ("LongMemEval-S end-to-end QA (Qwen2.5-3B)", "experiments/lme_llm", 2048)):
+    for name, root, budget in qa_sets:
         if Path(root).is_dir():
             runs = load_runs(Path(root))
             rows = ["Sliding window", "Extractive summary", "RAG + recency tail (50/50)", "RAG, turn-level",
                     "RAG + chunk prior", f"{OURS_PREFIX} turn ranking (v1.2)"] + store_rows
             ours = f"{OURS_PREFIX} store (top-3)" if (f"{OURS_PREFIX} store (top-3)", budget) in runs \
                 else f"{OURS_PREFIX} turn ranking (v1.2)"
-            upper = runs.get(("Full context (upper bound)", 32000))
+            upper = [(label, records) for (label, _), records in runs.items()
+                     if label in ("Full context (upper bound)", "Evidence sessions only (oracle)")]
             sections.append(comparison_table(
                 name, runs, budget, rows, ["f1", "em", "evidence_recall", "context_tokens"],
-                ours, args.out, name.split()[0].lower() + "_qa",
-                extra_rows=[("Full context (upper bound)", upper)] if upper else ()))
+                ours, args.out, name.split()[0].lower() + "_qa", extra_rows=upper))
 
-    for seg in sorted(Path("paper/results").glob("seg_*.json")) if Path("paper/results").is_dir() else []:
+    seg_files = sorted(Path("paper/results").glob("seg_*.json")) if Path("paper/results").is_dir() else []
+    if not args.include_locomo:
+        seg_files = [f for f in seg_files if "locomo" not in f.name]
+    for seg in seg_files:
         data = json.loads(seg.read_text(encoding="utf-8"))
         sections += [f"### Segmentation quality: {data['dataset']} "
                      f"(test histories: {data['test_histories']}, parameters tuned on dev)", "",

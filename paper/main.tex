@@ -37,19 +37,17 @@ of a topic-first store it returns the right topic first for 75\% of questions
 and keeps 93\% of a full scan's evidence recall while searching 17\% of the
 turns; as the store grows to $\sim$20K turns it stays close to an oracle
 segmentation while fixed-size chunks and semantic chunking fall behind. We
-also show that a widely used LoCoMo evaluation setup mis-scores 38\% of its
-probes and release corrected scoring. Finally we report negative results:
-topic-first retrieval does not beat scanning every turn on recall or
-end-to-end answer quality, and on a single history its retrieval advantage over
+also report negative results: topic-first retrieval does not beat scanning
+every turn on recall, and on a single history its retrieval advantage over
 other semantic segmenters is small and not statistically significant.
+\pending{one sentence on end-to-end QA once the final runs finish}
 \end{abstract}
 
 % ---------------------------------------------------------------------------
 \section{Introduction}
 
 Conversational assistants that persist across sessions accumulate histories
-far longer than any practical prompt: the LoCoMo conversations run to 30K
-tokens \citep{maharana2024locomo} and each LongMemEval-S question comes with
+far longer than any practical prompt: each LongMemEval-S question comes with
 $\sim$115K tokens of chat \citep{wu2025longmemeval}. Even with long-context
 models, placing everything in the prompt is costly and models use long inputs
 unevenly \citep{liu2024lost}. A \emph{context management policy} therefore
@@ -78,12 +76,9 @@ for segment centroids to stay pure.
   \item A topic-first store on these segments, evaluated for topic switching
   and retrieval cost, including a scaling study to $\sim$20K-turn stores
   (\S\ref{sec:store}--\ref{sec:scaling}).
-  \item A corrected LoCoMo evaluation: the common setup grades adversarial
-  questions against their trap answers and hides session dates, mis-scoring
-  38\% of probes for every policy (\S\ref{sec:setup}).
   \item A controlled benchmark (\textsc{ContextBench}) in which the model,
   prompt, tokenizer and embedder are fixed and only the policy varies, and an
-  honest account of where topic-structured memory does \emph{not} help
+  account of where topic-structured memory does \emph{not} help
   (\S\ref{sec:negative}).
 \end{enumerate}
 
@@ -95,7 +90,7 @@ in and out of the context \citep{packer2023memgpt}, maintain summaries or
 memory banks \citep{zhong2024memorybank,park2023generative}, or extract
 structured facts \citep{chhikara2025mem0}. LoCoMo \citep{maharana2024locomo}
 and LongMemEval \citep{wu2025longmemeval} benchmark long-term conversational
-memory; we use both and correct a common LoCoMo scoring practice.
+memory. We use LongMemEval, whose histories are organised in topical sessions.
 
 \paragraph{Retrieval granularity.} Retrieval-augmented generation
 \citep{lewis2020rag} depends on how text is chunked. Hierarchical indexes
@@ -164,39 +159,29 @@ computations instead of one per turn.
 \paragraph{Benchmark.} In \textsc{ContextBench} the policy is the only
 variable: the generator, prompt, tokenizer (which also measures every budget),
 embedder and decoding are shared. Generator: Qwen2.5-3B-Instruct
-\citep{qwen2024qwen25} in bfloat16 with greedy decoding; embedder:
-all-MiniLM-L6-v2 \citep{wang2020minilm,reimers2019sbert}.
+\citep{qwen2024qwen25} in bfloat16 with greedy decoding and at most 64 new
+tokens; embedder: all-MiniLM-L6-v2 \citep{wang2020minilm,reimers2019sbert}.
+Each transcript line carries its session date, counted against the budget, and
+the prompt gives the date the question is asked, which LongMemEval's temporal
+questions are relative to.
 
-\paragraph{Datasets.} \emph{LongMemEval-S} \citep{wu2025longmemeval}: 500
-questions, each with its own history of $\sim$48 sessions (median 491 turns)
-on mostly unrelated topics; 479 carry turn-level evidence labels and 30 are
-abstention questions. Its sessions are topics, so session boundaries serve as
-the segmentation reference. \emph{LoCoMo} \citep{maharana2024locomo}: 10
-two-person conversations (369--689 turns) with 1,986 QA probes; its sessions
-are days of one continuing conversation, not topics.
+\paragraph{Data.} LongMemEval-S \citep{wu2025longmemeval} has 500 questions,
+each with its own history of $\sim$48 sessions (median 491 turns, $\sim$115K
+tokens) on mostly unrelated topics. 479 questions carry turn-level evidence
+labels; 30 are abstention questions whose answer is not in the history. Each
+session is a topic, so session boundaries serve as the segmentation
+reference. The oracle variant, which keeps only the sessions containing the
+answer, provides an upper bound for question answering.
 
-\paragraph{Corrected LoCoMo scoring.} The common setup has two problems that
-affect every policy equally. (i) The 446 adversarial probes (22\%) ask about
-something the conversation never says, typically a fact re-attributed to the
-other speaker; their \texttt{adversarial\_answer} field is the \emph{trap}
-answer, and grading F1 against it rewards being fooled. We score them on
-abstention, as LoCoMo's own evaluation does, and report them separately; the
-headline metrics cover the 1,540 answerable probes. (ii) Session dates are
-loaded but never shown, so the 321 temporal probes (16\%) are unanswerable; we
-prefix each transcript line with its session date and count those tokens
-against the budget. We also use a short-answer prompt, without which exact
-match was 0 for every probe.
-
-\paragraph{Baselines.} Sliding window (newest turns); an extractive summary of
-dropped turns plus the newest turns; RAG over turns with half the budget for
-the newest turns (the original configuration) and with the whole budget for
-retrieval (full scan); and topic-first stores identical to \dc{} except for
-the segmentation: fixed-size chunks, an online adjacent-turn threshold
-(cut where $1-\cos(e_{t-1},e_t) > \theta$), offline semantic chunking (cut where
-the consecutive distance exceeds its $p$-th percentile in the history), offline
-TextTiling over embeddings \citep{hearst1997texttiling}, and the session
-boundaries themselves (an oracle). On LoCoMo the full conversation fits
-Qwen's 32K window and gives an upper bound.
+\paragraph{Baselines.} Sliding window (newest turns); RAG over individual turns
+with the whole budget for the most similar turns (a full scan); and
+topic-first stores identical to \dc{} except for the segmentation: fixed-size
+chunks; an online adjacent-turn threshold (cut where
+$1-\cos(e_{t-1},e_t) > \theta$); offline semantic chunking (cut where the
+consecutive distance exceeds its $p$-th percentile in the history,
+\citealp{langchain2024semanticchunker}); offline TextTiling over embeddings
+\citep{hearst1997texttiling}; and the session boundaries themselves (an oracle
+segmentation).
 
 \paragraph{Metrics.} \emph{Segmentation}: Pk, WindowDiff, and boundary
 precision/recall/F1 with one-to-one matching at tolerance 0 and $\pm 1$ turn.
@@ -205,17 +190,17 @@ topics); topic recall (evidence turns that are both selected and inside the
 searched topics); and the share of a full scan's comparisons. \emph{Selection}:
 evidence recall, the share of labelled evidence turns in the context.
 \emph{QA}: token F1 and exact match after SQuAD normalisation
-\citep{rajpurkar2016squad}, and the abstention rate on adversarial or
-abstention questions.
+\citep{rajpurkar2016squad} on answerable questions, and the abstention rate on
+the abstention questions.
 
 \paragraph{Protocol and statistics.} Histories are split in dataset order into
-dev and test halves. Each segmenter's one parameter (\dc{}'s $\tau$, chunk size,
-$\theta$, $p$, TextTiling block size) is tuned on LongMemEval dev histories by
-boundary F1 and reused unchanged everywhere, including LoCoMo. All
-comparisons are paired on the same questions: bootstrap 95\% confidence
-intervals of the mean difference (10,000 resamples) \citep{efron1993bootstrap}
-for continuous metrics and exact McNemar tests \citep{mcnemar1947note} for
-binary ones, with Holm correction \citep{holm1979simple} within each table.
+dev and test halves of 250. Each segmenter's one parameter (\dc{}'s $\tau$,
+chunk size, $\theta$, $p$, TextTiling block size) is tuned on dev histories by
+boundary F1 and used unchanged for every experiment. All comparisons are paired
+on the same questions: bootstrap 95\% confidence intervals of the mean
+difference (10,000 resamples) \citep{efron1993bootstrap} for continuous
+metrics and exact McNemar tests \citep{mcnemar1947note} for binary ones, with
+Holm correction \citep{holm1979simple} within each table.
 
 % ---------------------------------------------------------------------------
 \section{Results}
@@ -259,8 +244,8 @@ path-length detector (both $p < 0.001$).
 \begin{table}[t]
 \centering\small
 \input{tables/longmemeval-s_ablation}
-\caption{Ablating \dc{} in the topic store (LongMemEval-S, budget 2048,
-top-3 topics). Stars: significant difference from full \dc{}.}
+\caption{Ablating \dc{} in the topic store (budget 2048, top-3 topics). Stars:
+significant difference from full \dc{}.}
 \label{tab:ablation}
 \end{table}
 
@@ -270,10 +255,10 @@ top-3 topics). Stars: significant difference from full \dc{}.}
 \begin{table}[t]
 \centering\small
 \input{tables/longmemeval-s_topic}
-\caption{Topic-first stores on LongMemEval-S (budget 2048 tokens, top-3
-topics, 470 answerable questions with evidence). Stars mark a significant
-difference from \dc{} (Holm-adjusted; $^{*}p<.05$, $^{**}p<.01$,
-$^{***}p<.001$). The last row searches every turn.}
+\caption{Topic-first stores (budget 2048 tokens, top-3 topics, 470 answerable
+questions with evidence). Stars mark a significant difference from \dc{}
+(Holm-adjusted; $^{*}p<.05$, $^{**}p<.01$, $^{***}p<.001$). The last row
+searches every turn.}
 \label{tab:store}
 \end{table}
 
@@ -281,9 +266,9 @@ $^{***}p<.001$). The last row searches every turn.}
 \centering
 \includegraphics[width=0.49\linewidth]{figures/cost_recall.pdf}\hfill
 \includegraphics[width=0.49\linewidth]{figures/topic_hits.pdf}
-\caption{LongMemEval-S topic stores. Left: share of a full scan searched vs.\
-evidence recall within the searched topics, for the top 1, 3 and 5 topics.
-Right: topic hit@$k$.}
+\caption{Topic stores. Left: share of a full scan searched vs.\ evidence recall
+within the searched topics, for the top 1, 3 and 5 topics. Right: topic
+hit@$k$.}
 \label{fig:store}
 \end{figure}
 
@@ -327,84 +312,63 @@ A long-lived assistant's store holds far more than one history. We grow it by
 placing each test question's history after $D$ other questions' histories
 (Table~\ref{tab:scaling}, Figure~\ref{fig:scaling}). \dc{} stays within 1--3.3
 points of the session oracle at every size while searching 11--17\% of the
-store (10.5\% at $\sim$20K turns). Semantic chunking, whose percentile threshold is set over the whole
-history, falls progressively behind: from $\sim$2K turns up its hit@1 trails
-\dc{} by 0.08--0.10 (exact McNemar $p = 0.001$--$0.008$ per size before
-correction; not significant after correcting over all 50 tests). Fixed chunks
-lose significantly at every size. TextTiling matches \dc{}'s hit rates but is
-offline and its segments cost 30--38\% more comparisons from $\sim$2K turns up.
+store (10.5\% at $\sim$20K turns). Semantic chunking, whose percentile threshold
+is set over the whole history, falls progressively behind: from $\sim$2K turns
+up its hit@1 trails \dc{} by 0.08--0.10 (exact McNemar $p = 0.001$--$0.008$ per
+size before correction; not significant after correcting over all 50 tests).
+Fixed chunks lose significantly at every size. TextTiling matches \dc{}'s hit
+rates but is offline and its segments cost 30--38\% more comparisons from
+$\sim$2K turns up.
 
 \subsection{End-to-end question answering}
 \label{sec:qa}
 
 \begin{table}[t]
 \centering\small
-\input{tables/locomo_qa}
-\caption{LoCoMo QA with Qwen2.5-3B-Instruct, budget 512 tokens, 1,540
-answerable probes (abstention rate on the 446 adversarial probes in the last
-column). Stars: significant difference from \dc{}'s topic store
-(Holm-adjusted).}
-\label{tab:locomo-qa}
-\end{table}
-
-\begin{table}[t]
-\centering\small
 \input{tables/longmemeval-s_qa}
-\caption{LongMemEval-S QA with Qwen2.5-3B-Instruct, budget 2048 tokens.
-Stars: significant difference from \dc{}'s topic store (Holm-adjusted).
-\pending{final runs in progress}}
-\label{tab:lme-qa}
+\caption{Question answering with Qwen2.5-3B-Instruct, budget 2048 tokens,
+answerable questions (abstention rate on the 30 abstention questions in the
+last column). Stars: significant difference from \dc{}'s topic store
+(Holm-adjusted). The bottom row gives the model only the sessions that contain
+the answer. \pending{final runs in progress}}
+\label{tab:qa}
 \end{table}
 
-On LoCoMo (Table~\ref{tab:locomo-qa}), the corrected evaluation and a stronger
-generator lift every retrieval policy far above truncation (F1 0.22--0.27 vs.\
-0.03), and spending the whole budget on retrieved turns rather than splitting
-it with a recency tail adds 0.036 F1. \dc{}'s topic store (0.220) is
-statistically tied with the other topic stores and below a full scan (0.259,
-$-0.039$, CI [$-0.052$, $-0.026$]). LoCoMo has no topic structure for the store
-to exploit, and \dc{}'s LongMemEval-tuned threshold produces segments so large
-that the top three cover about half of each conversation. On LongMemEval-S
-(Table~\ref{tab:lme-qa}) \pending{results pending}.
+\pending{Paragraph on Table~\ref{tab:qa} once the final runs finish.}
 
 % ---------------------------------------------------------------------------
 \section{What Did Not Help}
 \label{sec:negative}
 
 \paragraph{Topic-first search does not beat a full scan on recall.} At equal
-budget, scanning every turn keeps more evidence (0.774 vs.\ 0.716 on
-LongMemEval-S) and answers LoCoMo better. The case for a topic store is cost
-and structure, not recall.
+budget, scanning every turn keeps more evidence (0.774 vs.\ 0.716). The case for
+a topic store is cost and structure, not recall.
+
+\paragraph{On a single history, better segmentation barely helps retrieval.}
+\dc{}'s clear lead in segmentation quality (Table~\ref{tab:seg}) turns into
+retrieval gains over other semantic segmenters that are consistent but small
+and mostly not significant; the gap opens only as the store grows
+(\S\ref{sec:scaling}).
 
 \paragraph{Segments as a ranking prior.} Before treating segments as storage
 units we used them as a prior in turn ranking, scoring each turn by its own
-similarity plus a weighted similarity of its segment. On LoCoMo this added 2--3
-points of evidence recall, but fixed-size chunks gave the same gain; on
-LongMemEval-S no prior, including the oracle sessions, beat plain retrieval.
-
-\paragraph{Topic state as a recency signal.} For questions asked right after
-their evidence, a recency tail helps at large budgets (LoCoMo, budget 2048:
-0.923 vs.\ 0.802 evidence recall), so the right budget split depends on the
-question. Whether the best-matching turn is recent separates these questions
-far better (AUC 0.85) than the question's similarity to \dc{}'s current topic
-(AUC 0.63).
-
-\paragraph{Earlier evaluation.} Under the uncorrected LoCoMo setup with a 1.1B
-model, every policy scored F1 0.06--0.12 and a query-aware \dc{} variant
-appeared to match retrieval exactly; it was in fact ranking the same turns,
-answering 1,214 of 1,986 probes identically.
+similarity plus a weighted similarity of its segment. No prior, including the
+oracle sessions, improved on plain retrieval (evidence recall 0.774 at budget
+2048 without a prior, 0.740--0.774 across the priors we tried).
 
 % ---------------------------------------------------------------------------
 \section{Limitations}
 
-LongMemEval's official metric is an LLM judge; we report token F1, exact match
-and evidence recall, which favour short exact answers. We use one generator
-size and one small embedder; absolute QA scores would rise with larger models.
-The scaling study grows stores with other users' histories, which are more
-distinct from one another than a single user's long-lived chat would be.
-LoCoMo, a dialogue between two people over months, is not a topic-segmentation
-benchmark, and our LoCoMo store results are confounded by segment granularity.
-Questions within a LoCoMo conversation are not independent, so LoCoMo
-$p$-values are likely optimistic. All experiments ran on a single 8\,GB GPU.
+We evaluate on one benchmark, LongMemEval-S, chosen because its histories are
+organised in topical sessions. In LoCoMo \citep{maharana2024locomo}, whose
+sessions are consecutive days of one two-person conversation with no topic
+structure, the topic store gave no gain over a full scan in our runs (F1 0.220
+vs.\ 0.259 at a 512-token budget). LongMemEval's official metric is an LLM
+judge; we report token F1, exact match and evidence recall, which favour short
+exact answers. We use one generator size and one small embedder. The scaling
+study grows stores with other users' histories, which are more distinct from
+one another than a single user's long-lived chat would be. All experiments ran
+on a single 8\,GB GPU.
 
 % ---------------------------------------------------------------------------
 \section{Conclusion}
@@ -415,9 +379,8 @@ localisation segments conversations more accurately than offline semantic
 chunking and TextTiling, and a store built on it finds the right topic for most
 questions while searching an order of magnitude fewer items than a full scan,
 staying close to oracle segmentation as the store grows. It does not replace a
-full scan when recall is all that matters. We release \textsc{ContextBench}, the
-corrected LoCoMo scoring, and all scripts that regenerate these tables and
-figures from run outputs.
+full scan when recall is all that matters. We release \textsc{ContextBench} and
+all scripts that regenerate these tables and figures from run outputs.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
