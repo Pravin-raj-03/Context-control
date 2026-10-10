@@ -114,7 +114,7 @@ The question's own history is placed after D other questions' histories.
 
 - ΔContext stays within 1–3.3 points of the session oracle at every size
   (none significant after correction; the largest, hit@3 at ~2K turns, has
-  uncorrected p = 0.04) while searching ~10.6% of the store.
+  uncorrected p = 0.04) while searching 11–17% of the store (10.5% at ~20K turns).
 - Semantic chunking falls progressively behind (hit@1 −0.08 to −0.10 from 4×
   up; exact McNemar p = 0.001–0.008 per size before correction; n.s. after
   Holm over all 50 tests in the table). Fixed chunks lose significantly
