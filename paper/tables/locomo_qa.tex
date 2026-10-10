@@ -1,12 +1,15 @@
 \begin{tabular}{lrrrrr}
 \toprule
-Method & f1 & em & evidence_recall & context_tokens & Abstain \\
+Method & F1 & EM & Evid. rec. & Tokens & Abstain \\
 \midrule
-Sliding window & 0.026$^{*}$$^{*}$$^{*}$ & 0.006$^{*}$$^{*}$$^{*}$ & 0.011$^{*}$$^{*}$$^{*}$ & 482.629 & 0.975 \\
-Extractive summary & 0.026$^{*}$$^{*}$$^{*}$ & 0.006$^{*}$$^{*}$$^{*}$ & 0.004$^{*}$$^{*}$$^{*}$ & 467.018 & 0.971 \\
-RAG + recency tail (50/50) & 0.223 & 0.073 & 0.374 & 483.764 & 0.688 \\
-RAG, turn-level & 0.259$^{*}$$^{*}$$^{*}$ & 0.081 & 0.475$^{*}$$^{*}$$^{*}$ & 506.748 & 0.646 \\
-RAG + chunk prior & 0.267$^{*}$$^{*}$$^{*}$ & 0.086 & 0.494$^{*}$$^{*}$$^{*}$ & 506.640 & 0.614 \\
-\textbf{$\Delta$Context turn ranking (v1.2)} & 0.228 & 0.075 & 0.375 & 485.936 & 0.673 \\
+Sliding window & 0.026$^{***}$ & 0.006$^{***}$ & 0.011$^{***}$ & 483 & 0.975 \\
+Extractive summary & 0.026$^{***}$ & 0.006$^{***}$ & 0.004$^{***}$ & 467 & 0.971 \\
+RAG + recency tail (50/50) & 0.223 & 0.073 & 0.374 & 484 & 0.688 \\
+RAG, full scan (turn-level) & 0.259$^{***}$ & 0.081 & 0.475$^{***}$ & 507 & 0.646 \\
+RAG + chunk prior & 0.267$^{***}$ & 0.086 & 0.494$^{***}$ & 507 & 0.614 \\
+$\Delta$Context v1.2 (turn ranking, 50/50) & 0.228 & 0.075 & 0.375 & 486 & 0.673 \\
+\textbf{$\Delta$Context topic store (ours)} & 0.220 & 0.071 & 0.382 & 506 & 0.675 \\
+Semantic chunking topic store & 0.202 & 0.067 & 0.356 & 507 & 0.677 \\
+Fixed-size chunks (5 turns) topic store & 0.224 & 0.080 & 0.412 & 506 & 0.621 \\
 \bottomrule
 \end{tabular}

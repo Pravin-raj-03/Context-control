@@ -1,0 +1,14 @@
+\begin{tabular}{llrrrrr}
+\toprule
+Method & Online & Pk $\downarrow$ & WD $\downarrow$ & F1$_{\pm1}$ & F1$_{0}$ & Segs \\
+\midrule
+Fixed-size chunks & yes & 0.534 & 0.572 & 0.375 & 0.127 & 98.9 \\
+Adjacent-turn threshold & yes & 0.125 & 0.179 & 0.778 & 0.771 & 57.4 \\
+Semantic chunking & no & 0.140 & 0.185 & 0.769 & 0.759 & 50.5 \\
+TextTiling & no & 0.212 & 0.257 & 0.774 & 0.768 & 71.5 \\
+$\Delta$Context (ours) & yes & \textbf{0.099} & \textbf{0.130} & \textbf{0.840} & \textbf{0.828} & 51.1 \\
+\midrule
+\quad w/o boundary localisation & yes & 0.444 & 0.477 & 0.170 & 0.035 & 51.0 \\
+\quad path-length detector & yes & 0.458 & 0.467 & 0.208 & 0.054 & 26.8 \\
+\bottomrule
+\end{tabular}

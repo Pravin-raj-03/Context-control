@@ -191,13 +191,48 @@ def holm(pvalues: dict) -> dict:
 
 # -- table rendering --------------------------------------------------------------------
 
-def fmt(value, pct=False):
+HEADERS = {"hit@1": "Hit@1", "hit@3": "Hit@3", "topic_recall": "Topic rec.",
+           "evidence_recall": "Evid. rec.", "searched": r"Searched (\%)", "f1": "F1",
+           "em": "EM", "context_tokens": "Tokens"}
+
+
+def fmt(value, pct=False, integer=False):
     if value is None:
         return "--"
+    if integer:
+        return f"{value:.0f}"
     return f"{100 * value:.1f}" if pct else f"{value:.3f}"
 
 
-def comparison_table(title, runs, budget, rows, metrics, ours, out_dir, stem, pct_metrics=()):
+def stars(p):
+    if p is None:
+        return ""
+    return "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+
+
+def tex_label(method: str) -> str:
+    """Paper-facing method names for the LaTeX tables."""
+    names = {
+        f"{OURS_PREFIX} store (top-3)": r"$\Delta$Context topic store (ours)",
+        f"{OURS_PREFIX} store (top-3) (no localization)": r"\quad w/o boundary localisation",
+        f"{OURS_PREFIX} store (top-3) (path-length detector)": r"\quad path-length detector",
+        f"{OURS_PREFIX} turn ranking (v1.2)": r"$\Delta$Context v1.2 (turn ranking, 50/50)",
+        "RAG, turn-level": "RAG, full scan (turn-level)",
+    }
+    if method in names:
+        return names[method]
+    return method.replace(" store (top-3)", " topic store").replace("%", r"\%")
+
+
+def tex_cell(cell: str) -> str:
+    """Move significance stars into one superscript."""
+    bare = cell.rstrip("*")
+    n = len(cell) - len(bare)
+    return bare + (r"$^{" + "*" * n + "}$" if n else "")
+
+
+def comparison_table(title, runs, budget, rows, metrics, ours, out_dir, stem, pct_metrics=(),
+                     extra_rows=()):
     """One table: a row per method, one column per metric, plus ΔContext-vs-row tests."""
     present = [m for m in rows if (m, budget) in runs]
     tests, raw_p = {}, {}
@@ -221,27 +256,33 @@ def comparison_table(title, runs, budget, rows, metrics, ours, out_dir, stem, pc
     header = ["Method"] + metrics + (["Abstain"] if "f1" in metrics else [])
     lines_md = [f"### {title} (budget {budget})", "",
                 "| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    tex_header = ["Method"] + [HEADERS.get(m, m) for m in metrics] + (["Abstain"] if "f1" in metrics else [])
     lines_tex = [r"\begin{tabular}{l" + "r" * (len(header) - 1) + "}", r"\toprule",
-                 " & ".join(h.replace("@", r"@") for h in header) + r" \\", r"\midrule"]
-    for method in present:
+                 " & ".join(tex_header) + r" \\", r"\midrule"]
+
+    def row_cells(records, method=None):
         cells = []
         for metric in metrics:
-            value = mean_metric(runs[(method, budget)], metric)
-            cell = fmt(value, metric in pct_metrics)
-            test = tests.get((method, metric))
-            if test is not None:
-                p = adjusted[(method, metric)]
-                stars = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
-                cell += stars
+            value = mean_metric(records, metric)
+            cell = fmt(value, metric in pct_metrics, integer=metric == "context_tokens")
+            if method is not None and (method, metric) in tests:
+                cell += stars(adjusted[(method, metric)])
             cells.append(cell)
         if "f1" in metrics:
-            cells.append(fmt(abstention(runs[(method, budget)])))
+            cells.append(fmt(abstention(records)))
+        return cells
+
+    for method in present:
+        cells = row_cells(runs[(method, budget)], method)
         name = f"**{method}**" if method == ours else method
         lines_md.append("| " + " | ".join([name] + cells) + " |")
-        tex_name = method.replace("ΔContext", r"$\Delta$Context").replace("%", r"\%")
-        tex_cells = [c.replace("*", r"$^{*}$") for c in cells]
-        lines_tex.append(" & ".join([r"\textbf{" + tex_name + "}" if method == ours else tex_name]
-                                    + tex_cells) + r" \\")
+        label = tex_label(method)
+        lines_tex.append(" & ".join([r"\textbf{" + label + "}" if method == ours else label]
+                                    + [tex_cell(c) for c in cells]) + r" \\")
+    for label, records in extra_rows:
+        cells = row_cells(records)
+        lines_md.append("| " + " | ".join([label] + cells) + " |")
+        lines_tex += [r"\midrule", " & ".join([tex_label(label)] + cells) + r" \\"]
     lines_tex += [r"\bottomrule", r"\end{tabular}"]
 
     detail = [f"", f"ΔContext ({ours}) minus each baseline; Holm-adjusted p within this table:"]
@@ -293,23 +334,46 @@ def main() -> None:
                     "RAG + chunk prior", f"{OURS_PREFIX} turn ranking (v1.2)"] + store_rows
             ours = f"{OURS_PREFIX} store (top-3)" if (f"{OURS_PREFIX} store (top-3)", budget) in runs \
                 else f"{OURS_PREFIX} turn ranking (v1.2)"
+            upper = runs.get(("Full context (upper bound)", 32000))
             sections.append(comparison_table(
                 name, runs, budget, rows, ["f1", "em", "evidence_recall", "context_tokens"],
-                ours, args.out, name.split()[0].lower() + "_qa"))
-            upper = runs.get(("Full context (upper bound)", 32000))
-            if upper:
-                sections.append(f"Full-context upper bound: F1 {fmt(mean_metric(upper, 'f1'))}, "
-                                f"EM {fmt(mean_metric(upper, 'em'))}, context "
-                                f"{mean_metric(upper, 'context_tokens'):.0f} tokens.\n")
+                ours, args.out, name.split()[0].lower() + "_qa",
+                extra_rows=[("Full context (upper bound)", upper)] if upper else ()))
 
     for seg in sorted(Path("paper/results").glob("seg_*.json")) if Path("paper/results").is_dir() else []:
         data = json.loads(seg.read_text(encoding="utf-8"))
         sections += [f"### Segmentation quality: {data['dataset']} "
                      f"(test histories: {data['test_histories']}, parameters tuned on dev)", "",
                      "| Method | Pk | WindowDiff | P@1 | R@1 | F1@1 | F1@0 | Segments |", "|---|---|---|---|---|---|---|---|"]
+        seg_names = {
+            "delta_context": (r"$\Delta$Context (ours)", "yes"),
+            "adjacent": ("Adjacent-turn threshold", "yes"),
+            "semantic_chunker": ("Semantic chunking", "no"),
+            "texttiling": ("TextTiling", "no"),
+            "fixed": ("Fixed-size chunks", "yes"),
+            "delta_context_unlocalized": (r"\quad w/o boundary localisation", "yes"),
+            "delta_context_sum": (r"\quad path-length detector", "yes"),
+        }
+        main_rows = {m: v for m, v in data["test_results"].items() if not m.startswith("delta_context_")}
+        best = {k: min(v[k] for v in main_rows.values()) for k in ("pk", "windowdiff")}
+        best.update({k: max(v[k] for v in main_rows.values()) for k in ("f1@1", "f1@0")})
+        tex = [r"\begin{tabular}{llrrrrr}", r"\toprule",
+               r"Method & Online & Pk $\downarrow$ & WD $\downarrow$ & F1$_{\pm1}$ & F1$_{0}$ & Segs \\",
+               r"\midrule"]
         for method, m in data["test_results"].items():
             sections.append(f"| {method} | {m['pk']:.3f} | {m['windowdiff']:.3f} | {m['p@1']:.3f} | "
                             f"{m['r@1']:.3f} | {m['f1@1']:.3f} | {m['f1@0']:.3f} | {m['segments']:.1f} |")
+            label, online = seg_names.get(method, (method, ""))
+            if method == "delta_context_unlocalized":
+                tex.append(r"\midrule")
+            cells = []
+            for k in ("pk", "windowdiff", "f1@1", "f1@0"):
+                cell = f"{m[k]:.3f}"
+                cells.append(r"\textbf{" + cell + "}" if method in main_rows and m[k] == best[k] else cell)
+            tex.append(" & ".join([label, online] + cells + [f"{m['segments']:.1f}"]) + r" \\")
+        tex += [r"\bottomrule", r"\end{tabular}"]
+        (args.out / "tables" / f"segmentation_{seg.stem.removeprefix('seg_')}.tex").write_text(
+            "\n".join(tex) + "\n", encoding="utf-8")
         sections.append("")
 
     scaling_path = Path("paper/results/scaling_lme.json")
@@ -331,12 +395,29 @@ def main() -> None:
             for m in methods:
                 v = data[d][m]
                 p = adjusted.get((d, m, "hit@3"))
-                stars = "" if p is None else "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
-                cells.append(f"{v['hit@1']:.3f} / {v['hit@3']:.3f}{stars} ({v['comparisons']:.0f})")
+                mark = stars(p)
+                cells.append(f"{v['hit@1']:.3f} / {v['hit@3']:.3f}{mark} ({v['comparisons']:.0f})")
             full = data[d]["Full scan (turn-level)"]
             sections.append(f"| {data[d]['ΔContext']['turns']:.0f} | " + " | ".join(cells)
                             + f" | ({full['comparisons']:.0f}) |")
         sections.append("")
+        short = {"ΔContext": r"$\Delta$Ctx", "Fixed-size chunks": "Fixed", "Semantic chunking": "Semantic",
+                 "TextTiling": "TextTiling", "Adjacent threshold": "Adjacent", "Session oracle": "Oracle"}
+        tex = [r"\begin{tabular}{r" + "c" * len(methods) + "r}", r"\toprule",
+               "Turns & " + " & ".join(short.get(m, m) for m in methods)
+               + r" & Comparisons ($\Delta$Ctx / full) \\", r"\midrule"]
+        for d in sizes:
+            cells = []
+            for m in methods:
+                v = data[d][m]
+                star = stars(adjusted.get((d, m, "hit@3")))
+                cells.append(f"{v['hit@1']:.2f} / {v['hit@3']:.2f}" + (r"$^{" + star + "}$" if star else ""))
+            full = data[d]["Full scan (turn-level)"]
+            ours_cmp = data[d]["ΔContext"]["comparisons"]
+            tex.append(f"{data[d]['ΔContext']['turns']:,.0f} & " + " & ".join(cells)
+                       + f" & {ours_cmp:,.0f} / {full['comparisons']:,.0f}" + r" \\")
+        tex += [r"\bottomrule", r"\end{tabular}"]
+        (args.out / "tables" / "scaling_lme.tex").write_text("\n".join(tex) + "\n", encoding="utf-8")
 
     (args.out / "RESULTS_TABLES.md").write_text("\n".join(sections), encoding="utf-8")
     print("\n".join(sections))

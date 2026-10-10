@@ -116,29 +116,48 @@ Answerable probes only; significance markers: * p<0.05, ** p<0.01, *** p<0.001 (
 
 | Method | f1 | em | evidence_recall | context_tokens | Abstain |
 |---|---|---|---|---|---|
-| Sliding window | 0.026*** | 0.006*** | 0.011*** | 482.629 | 0.975 |
-| Extractive summary | 0.026*** | 0.006*** | 0.004*** | 467.018 | 0.971 |
-| RAG + recency tail (50/50) | 0.223 | 0.073 | 0.374 | 483.764 | 0.688 |
-| RAG, turn-level | 0.259*** | 0.081 | 0.475*** | 506.748 | 0.646 |
-| RAG + chunk prior | 0.267*** | 0.086 | 0.494*** | 506.640 | 0.614 |
-| **ΔContext turn ranking (v1.2)** | 0.228 | 0.075 | 0.375 | 485.936 | 0.673 |
+| Sliding window | 0.026*** | 0.006*** | 0.011*** | 483 | 0.975 |
+| Extractive summary | 0.026*** | 0.006*** | 0.004*** | 467 | 0.971 |
+| RAG + recency tail (50/50) | 0.223 | 0.073 | 0.374 | 484 | 0.688 |
+| RAG, turn-level | 0.259*** | 0.081 | 0.475*** | 507 | 0.646 |
+| RAG + chunk prior | 0.267*** | 0.086 | 0.494*** | 507 | 0.614 |
+| ΔContext turn ranking (v1.2) | 0.228 | 0.075 | 0.375 | 486 | 0.673 |
+| **ΔContext store (top-3)** | 0.220 | 0.071 | 0.382 | 506 | 0.675 |
+| Semantic chunking store (top-3) | 0.202 | 0.067 | 0.356 | 507 | 0.677 |
+| Fixed-size chunks (5 turns) store (top-3) | 0.224 | 0.080 | 0.412 | 506 | 0.621 |
+
+ΔContext (ΔContext store (top-3)) minus each baseline; Holm-adjusted p within this table:
+- vs Extractive summary, em: +0.064 [+0.052, +0.078], p_adj=0.0000
+- vs Extractive summary, evidence_recall: +0.378 [+0.354, +0.401], p_adj=0.0000
+- vs Extractive summary, f1: +0.194 [+0.178, +0.210], p_adj=0.0000
+- vs Fixed-size chunks (5 turns) store (top-3), em: -0.009 [-0.021, +0.003], p_adj=1.0000
+- vs Fixed-size chunks (5 turns) store (top-3), evidence_recall: -0.030 [-0.057, -0.004], p_adj=0.3094
+- vs Fixed-size chunks (5 turns) store (top-3), f1: -0.004 [-0.020, +0.011], p_adj=1.0000
+- vs RAG + chunk prior, em: -0.015 [-0.026, -0.004], p_adj=0.1008
+- vs RAG + chunk prior, evidence_recall: -0.112 [-0.133, -0.092], p_adj=0.0000
+- vs RAG + chunk prior, f1: -0.047 [-0.061, -0.033], p_adj=0.0000
+- vs RAG + recency tail (50/50), em: -0.003 [-0.014, +0.009], p_adj=1.0000
+- vs RAG + recency tail (50/50), evidence_recall: +0.008 [-0.015, +0.031], p_adj=1.0000
+- vs RAG + recency tail (50/50), f1: -0.003 [-0.018, +0.012], p_adj=1.0000
+- vs RAG, turn-level, em: -0.010 [-0.021, +0.000], p_adj=0.5420
+- vs RAG, turn-level, evidence_recall: -0.093 [-0.113, -0.074], p_adj=0.0000
+- vs RAG, turn-level, f1: -0.039 [-0.052, -0.026], p_adj=0.0000
+- vs Semantic chunking store (top-3), em: +0.004 [-0.008, +0.016], p_adj=1.0000
+- vs Semantic chunking store (top-3), evidence_recall: +0.026 [+0.003, +0.049], p_adj=0.3278
+- vs Semantic chunking store (top-3), f1: +0.018 [+0.002, +0.034], p_adj=0.3096
+- vs Sliding window, em: +0.064 [+0.052, +0.078], p_adj=0.0000
+- vs Sliding window, evidence_recall: +0.371 [+0.347, +0.394], p_adj=0.0000
+- vs Sliding window, f1: +0.194 [+0.178, +0.210], p_adj=0.0000
+- vs ΔContext turn ranking (v1.2), em: -0.004 [-0.016, +0.008], p_adj=1.0000
+- vs ΔContext turn ranking (v1.2), evidence_recall: +0.007 [-0.016, +0.030], p_adj=1.0000
+- vs ΔContext turn ranking (v1.2), f1: -0.008 [-0.023, +0.007], p_adj=1.0000
+
+### LongMemEval-S end-to-end QA (Qwen2.5-3B) (budget 2048)
+
+| Method | f1 | em | evidence_recall | context_tokens | Abstain |
+|---|---|---|---|---|---|
 
 ΔContext (ΔContext turn ranking (v1.2)) minus each baseline; Holm-adjusted p within this table:
-- vs Extractive summary, em: +0.068 [+0.056, +0.081], p_adj=0.0000
-- vs Extractive summary, evidence_recall: +0.370 [+0.347, +0.394], p_adj=0.0000
-- vs Extractive summary, f1: +0.202 [+0.186, +0.219], p_adj=0.0000
-- vs RAG + chunk prior, em: -0.011 [-0.022, -0.001], p_adj=0.1848
-- vs RAG + chunk prior, evidence_recall: -0.119 [-0.136, -0.104], p_adj=0.0000
-- vs RAG + chunk prior, f1: -0.039 [-0.051, -0.026], p_adj=0.0000
-- vs RAG + recency tail (50/50), em: +0.001 [-0.002, +0.005], p_adj=0.6756
-- vs RAG + recency tail (50/50), evidence_recall: +0.001 [+0.000, +0.001], p_adj=0.6756
-- vs RAG + recency tail (50/50), f1: +0.005 [+0.000, +0.010], p_adj=0.1610
-- vs RAG, turn-level, em: -0.006 [-0.017, +0.004], p_adj=0.6756
-- vs RAG, turn-level, evidence_recall: -0.100 [-0.115, -0.086], p_adj=0.0000
-- vs RAG, turn-level, f1: -0.031 [-0.043, -0.018], p_adj=0.0000
-- vs Sliding window, em: +0.068 [+0.056, +0.081], p_adj=0.0000
-- vs Sliding window, evidence_recall: +0.363 [+0.340, +0.387], p_adj=0.0000
-- vs Sliding window, f1: +0.202 [+0.186, +0.218], p_adj=0.0000
 
 ### Segmentation quality: configs\dataset\longmemeval_s.yaml (test histories: 250, parameters tuned on dev)
 
