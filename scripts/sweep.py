@@ -20,6 +20,7 @@ written next to the results as ``<output_dir>/_logs/<variant>_b<budget>.log``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import subprocess
@@ -32,7 +33,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def _slug(text: str) -> str:
-    return re.sub(r"[^0-9A-Za-z._=-]+", "_", text).strip("_")[:120]
+    """Readable, filesystem-safe name for a variant, unique via a short hash
+    (variants often differ only past the truncation point)."""
+    digest = hashlib.sha1(text.encode("utf-8")).hexdigest()[:8]
+    return re.sub(r"[^0-9A-Za-z._=-]+", "_", text).strip("_")[:100] + "_" + digest
 
 
 def run_one(overrides: list[str], log_path: Path, threads: int) -> tuple[int, float]:
