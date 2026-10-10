@@ -39,8 +39,10 @@ turns; as the store grows to $\sim$20K turns it stays close to an oracle
 segmentation while fixed-size chunks and semantic chunking fall behind. We
 also report negative results: topic-first retrieval does not beat scanning
 every turn on recall, and on a single history its retrieval advantage over
-other semantic segmenters is small and not statistically significant.
-\pending{one sentence on end-to-end QA once the final runs finish}
+other semantic segmenters is small and not statistically significant. In
+end-to-end question answering with a 3B model, however, the store's answers
+are statistically indistinguishable from a full scan's (F1 0.295 vs.\ 0.311;
+difference $-0.016$, 95\% CI [$-0.036$, $+0.005$]).
 \end{abstract}
 
 % ---------------------------------------------------------------------------
@@ -327,14 +329,26 @@ $\sim$2K turns up.
 \centering\small
 \input{tables/longmemeval-s_qa}
 \caption{Question answering with Qwen2.5-3B-Instruct, budget 2048 tokens,
-answerable questions (abstention rate on the 30 abstention questions in the
+470 answerable questions (abstention rate on the 30 abstention questions in the
 last column). Stars: significant difference from \dc{}'s topic store
-(Holm-adjusted). The bottom row gives the model only the sessions that contain
-the answer. \pending{final runs in progress}}
+(Holm-adjusted). The bottom row gives the model the whole history of the
+LongMemEval oracle split, which keeps only the sessions containing the answer
+(median $\sim$6K tokens, outside the 2048-token budget).}
 \label{tab:qa}
 \end{table}
 
-\pending{Paragraph on Table~\ref{tab:qa} once the final runs finish.}
+Table~\ref{tab:qa} reports answer quality. Restricting retrieval to the top
+three \dc{} topics costs 0.057 evidence recall relative to a full scan but no
+significant answer quality: F1 0.295 vs.\ 0.311 (difference $-0.016$, 95\% CI
+[$-0.036$, $+0.005$]) and exact match 0.209 vs.\ 0.217, while searching 17\% of
+the turns. \dc{}'s store is also statistically tied with the session-oracle
+store (0.298) and the semantic-chunking store (0.284), and ahead of fixed
+10-turn chunks by 0.032 F1 (CI [+0.008, +0.058]; not significant after
+correction). It answers ``not mentioned'' on 29 of the 30 abstention questions.
+Giving the model only the sessions that contain the answer is not an upper
+bound for a 3B model: with a median of $\sim$6K tokens in context its F1 is
+0.279, below the 2K-token retrieved contexts, in line with models using long
+inputs unevenly \citep{liu2024lost}.
 
 % ---------------------------------------------------------------------------
 \section{What Did Not Help}
@@ -378,8 +392,9 @@ organise long-term chat memory. \dc{}'s displacement detector with boundary
 localisation segments conversations more accurately than offline semantic
 chunking and TextTiling, and a store built on it finds the right topic for most
 questions while searching an order of magnitude fewer items than a full scan,
-staying close to oracle segmentation as the store grows. It does not replace a
-full scan when recall is all that matters. We release \textsc{ContextBench} and
+staying close to oracle segmentation as the store grows, with answer quality
+statistically indistinguishable from a full scan. It does not replace a full
+scan when evidence recall is all that matters. We release \textsc{ContextBench} and
 all scripts that regenerate these tables and figures from run outputs.
 
 \bibliographystyle{plainnat}

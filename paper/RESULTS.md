@@ -26,7 +26,7 @@ Supported claims:
    recall, and on a single history it is not significantly better than every
    semantic segmenter at retrieval.
 
-End-to-end QA: §5 (final runs pending).
+4. **End-to-end QA parity with a full scan** at ~17% of the search (§5).
 
 ## 1. Segmentation quality (250 test histories)
 
@@ -97,12 +97,24 @@ All differences p < 0.001.
 - TextTiling matches ΔContext's hit rates but is offline and needs 30–38% more
   comparisons from ~2K turns up.
 
-## 5. End-to-end QA (Qwen2.5-3B-Instruct, budget 2048) — pending
+## 5. End-to-end QA (Qwen2.5-3B-Instruct, budget 2048, 470 answerable questions)
 
-Rows: sliding window, RAG full scan, ΔContext / semantic-chunking / fixed-chunk
-/ session-oracle topic stores (top-3), and an upper bound that gives the model
-only the sessions containing the answer (LongMemEval oracle). Table:
-`tables/longmemeval-s_qa.tex`.
+| Policy | F1 | EM | Evidence recall | Abstains (30 abstention Qs) |
+|---|---|---|---|---|
+| RAG, full scan | 0.311 | 0.217 | 0.774*** | 0.933 |
+| Session-oracle topic store | 0.298 | 0.202 | 0.734 | 1.000 |
+| **ΔContext topic store** | **0.295** | **0.209** | **0.717** | **0.967** |
+| Semantic-chunking topic store | 0.284 | 0.194 | 0.717 | 0.933 |
+| Fixed 10-turn topic store | 0.263 | 0.187 | 0.601*** | 1.000 |
+| Sliding window | 0.019*** | 0.006*** | 0.009*** | 1.000 |
+| Evidence sessions only (~6K tokens, outside the budget) | 0.279 | 0.202 | 1.000 | 0.933 |
+
+- ΔContext vs full scan: F1 −0.016 [−0.036, +0.005], n.s.; EM −0.009 n.s.;
+  evidence recall −0.057 (p < 0.001). Same answer quality at 17% of the search.
+- ΔContext vs semantic chunking +0.011 F1, vs session oracle −0.003 (both n.s.);
+  vs fixed 10-turn chunks +0.032 [+0.008, +0.058] (n.s. after Holm).
+- The evidence-sessions-only context is not an upper bound for a 3B model:
+  ~6K tokens of context score below 2K tokens of retrieved turns.
 
 ## 6. What did not help
 

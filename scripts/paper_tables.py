@@ -220,7 +220,7 @@ def tex_label(method: str) -> str:
         f"{OURS_PREFIX} store (top-3) (path-length detector)": r"\quad path-length detector",
         f"{OURS_PREFIX} turn ranking (v1.2)": r"$\Delta$Context v1.2 (turn ranking, 50/50)",
         "RAG, turn-level": "RAG, full scan (turn-level)",
-        "Evidence sessions only (oracle)": "Evidence sessions only (oracle upper bound)",
+        "Evidence sessions only (oracle)": r"Evidence sessions only ($\sim$6K tokens)",
     }
     if method in names:
         return names[method]

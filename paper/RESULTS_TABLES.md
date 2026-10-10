@@ -63,8 +63,30 @@ Answerable probes only; significance markers: * p<0.05, ** p<0.01, *** p<0.001 (
 
 | Method | f1 | em | evidence_recall | context_tokens | Abstain |
 |---|---|---|---|---|---|
+| Sliding window | 0.019*** | 0.006*** | 0.009*** | 1809 | 1.000 |
+| RAG, turn-level | 0.311 | 0.217 | 0.774*** | 2037 | 0.933 |
+| **ΔContext store (top-3)** | 0.295 | 0.209 | 0.717 | 2038 | 0.967 |
+| Session oracle store (top-3) | 0.298 | 0.202 | 0.734 | 2037 | 1.000 |
+| Semantic chunking store (top-3) | 0.284 | 0.194 | 0.717 | 2037 | 0.933 |
+| Fixed-size chunks (10 turns) store (top-3) | 0.263 | 0.187 | 0.601*** | 2039 | 1.000 |
+| Evidence sessions only (oracle) | 0.279 | 0.202 | 1.000 | 5987 | 0.933 |
 
-ΔContext (ΔContext turn ranking (v1.2)) minus each baseline; Holm-adjusted p within this table:
+ΔContext (ΔContext store (top-3)) minus each baseline; Holm-adjusted p within this table:
+- vs Fixed-size chunks (10 turns) store (top-3), em: +0.021 [-0.004, +0.047], p_adj=0.9744
+- vs Fixed-size chunks (10 turns) store (top-3), evidence_recall: +0.116 [+0.086, +0.147], p_adj=0.0000
+- vs Fixed-size chunks (10 turns) store (top-3), f1: +0.032 [+0.008, +0.058], p_adj=0.0940
+- vs RAG, turn-level, em: -0.009 [-0.028, +0.011], p_adj=1.0000
+- vs RAG, turn-level, evidence_recall: -0.057 [-0.078, -0.036], p_adj=0.0000
+- vs RAG, turn-level, f1: -0.016 [-0.036, +0.005], p_adj=0.9744
+- vs Semantic chunking store (top-3), em: +0.015 [-0.006, +0.036], p_adj=1.0000
+- vs Semantic chunking store (top-3), evidence_recall: +0.000 [-0.021, +0.021], p_adj=1.0000
+- vs Semantic chunking store (top-3), f1: +0.011 [-0.011, +0.033], p_adj=1.0000
+- vs Session oracle store (top-3), em: +0.006 [-0.009, +0.021], p_adj=1.0000
+- vs Session oracle store (top-3), evidence_recall: -0.017 [-0.031, -0.002], p_adj=0.1872
+- vs Session oracle store (top-3), f1: -0.003 [-0.018, +0.012], p_adj=1.0000
+- vs Sliding window, em: +0.202 [+0.166, +0.238], p_adj=0.0000
+- vs Sliding window, evidence_recall: +0.709 [+0.674, +0.743], p_adj=0.0000
+- vs Sliding window, f1: +0.276 [+0.239, +0.313], p_adj=0.0000
 
 ### Segmentation quality: configs\dataset\longmemeval_s.yaml (test histories: 250, parameters tuned on dev)
 
