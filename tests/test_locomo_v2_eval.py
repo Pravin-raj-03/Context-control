@@ -31,6 +31,7 @@ def _msg(turn_id: int, dia_id: str, content: str = "hello there", date: str | No
 def test_compact_date_strips_time_of_day():
     assert compact_date("1:56 pm on 8 May, 2023") == "8 May 2023"
     assert compact_date("10:37 am on 27 June, 2023") == "27 June 2023"
+    assert compact_date("2023/05/20 (Sat) 02:21") == "2023/05/20"
     assert compact_date("sometime") == "sometime"
 
 
@@ -73,6 +74,7 @@ def test_answers_are_not_abstentions(text):
 
 def test_parse_evidence_ids_handles_packed_entries():
     assert parse_evidence_ids(["D2:3", "D8:6; D9:17"]) == {"D2:3", "D8:6", "D9:17"}
+    assert parse_evidence_ids(["answer_280352e9:4"]) == {"answer_280352e9:4"}
 
 
 def test_evidence_recall_ignores_unreachable_ids():

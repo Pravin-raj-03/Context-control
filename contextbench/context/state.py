@@ -202,6 +202,12 @@ class SentenceTransformerEmbedder:
     hermetic tests, which use a fake embedder) stay importable without the heavy
     dependency. Embeddings are L2-normalized by default, which makes cosine
     similarity equal to a dot product downstream.
+
+    An optional precomputed cache (``scripts/precompute_embeddings.py``) maps
+    each text to its vector, so datasets whose histories repeat the same turns
+    (LongMemEval reuses sessions across questions) are embedded once in batches
+    instead of once per policy run, one turn at a time. Texts missing from the
+    cache are embedded normally.
     """
 
     def __init__(
@@ -210,6 +216,7 @@ class SentenceTransformerEmbedder:
         *,
         device: str | None = None,
         normalize: bool = True,
+        cache_path: str | None = None,
     ) -> None:
         """Load the embedding model.
 
@@ -217,11 +224,19 @@ class SentenceTransformerEmbedder:
             model_name: HuggingFace SentenceTransformers model id.
             device: Torch device string, or ``None`` to auto-select.
             normalize: L2-normalize embeddings.
+            cache_path: Optional ``.npz`` written by
+                ``scripts/precompute_embeddings.py`` for this same model.
+
+        Raises:
+            ValueError: If the cache was built with a different model.
         """
         from sentence_transformers import SentenceTransformer
 
         self._model = SentenceTransformer(model_name, device=device)
         self._normalize = normalize
+        self._cache: dict[str, np.ndarray] = {}
+        if cache_path is not None:
+            self._cache = load_embedding_cache(cache_path, model_name)
 
     @property
     def dim(self) -> int:
@@ -231,9 +246,39 @@ class SentenceTransformerEmbedder:
         return self.embed_batch([text])[0]
 
     def embed_batch(self, texts: Sequence[str]) -> np.ndarray:
+        texts = list(texts)
+        if not self._cache:
+            return self._encode(texts)
+        keys = [text_key(t) for t in texts]
+        missing = [t for t, k in zip(texts, keys) if k not in self._cache]
+        fresh = iter(self._encode(missing)) if missing else iter(())
+        return np.stack([
+            self._cache[k] if k in self._cache else next(fresh) for k in keys
+        ]).astype(np.float32)
+
+    def _encode(self, texts: list[str]) -> np.ndarray:
         vectors = self._model.encode(
-            list(texts),
+            texts,
             normalize_embeddings=self._normalize,
             convert_to_numpy=True,
         )
         return np.asarray(vectors, dtype=np.float32)
+
+
+def text_key(text: str) -> str:
+    """Stable cache key for a text (SHA-1 of its UTF-8 bytes)."""
+    import hashlib
+
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()
+
+
+def load_embedding_cache(path: str, model_name: str) -> dict[str, np.ndarray]:
+    """Load a precomputed text -> vector cache, checking it matches ``model_name``."""
+    with np.load(path, allow_pickle=False) as data:
+        cached_model = str(data["model"])
+        if cached_model != model_name:
+            raise ValueError(
+                f"Embedding cache {path} was built with {cached_model!r}, "
+                f"not {model_name!r}."
+            )
+        return dict(zip(data["keys"].tolist(), data["vectors"]))

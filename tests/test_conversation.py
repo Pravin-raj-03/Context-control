@@ -49,6 +49,20 @@ def test_replayer_empty_sample():
     assert list(ConversationReplayer("end").iter_steps(empty)) == []
 
 
-def test_replayer_per_session_not_implemented(messages):
-    with pytest.raises(NotImplementedError):
-        list(ConversationReplayer("per_session").iter_steps(_sample(messages)))
+def test_replayer_per_session_asks_after_latest_evidence_session():
+    from contextbench.core.types import Message
+
+    sessions = ["session_1"] * 3 + ["session_2"] * 3 + ["session_3"] * 3
+    messages = tuple(
+        Message(role="user", content=f"turn {i}", turn_id=i, speaker="A",
+                session_id=sid, meta={"dia_id": f"D:{i}"})
+        for i, sid in enumerate(sessions)
+    )
+    early = QAItem(question="early?", answer="a", evidence=("D:1",))
+    spans = QAItem(question="spans?", answer="b", evidence=("D:0", "D:4"))
+    none = QAItem(question="none?", answer="c")
+    sample = ConversationSample(sample_id="s", messages=messages,
+                                qa_items=(early, spans, none))
+    steps = list(ConversationReplayer("per_session").iter_steps(sample))
+    asked = {s.turn_index: s.checkpoint_qa for s in steps if s.is_checkpoint}
+    assert asked == {2: (early,), 5: (spans,), 8: (none,)}

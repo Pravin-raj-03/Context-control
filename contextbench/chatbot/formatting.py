@@ -26,9 +26,10 @@ from typing import Sequence
 
 from contextbench.core.types import Message
 
-# LoCoMo session stamps look like "1:56 pm on 8 May, 2023"; the time of day is
-# never asked about, so only the calendar date is rendered.
+# LoCoMo session stamps look like "1:56 pm on 8 May, 2023" and LongMemEval's
+# like "2023/05/20 (Sat) 02:21"; only the calendar date is rendered.
 _LOCOMO_DATE_RE = re.compile(r"(\d{1,2}) (\w+),? (\d{4})")
+_ISO_LIKE_DATE_RE = re.compile(r"\d{4}/\d{2}/\d{2}")
 
 
 def compact_date(raw: str) -> str:
@@ -36,6 +37,9 @@ def compact_date(raw: str) -> str:
 
     Unrecognized formats are returned stripped but otherwise unchanged.
     """
+    iso_like = _ISO_LIKE_DATE_RE.search(raw)
+    if iso_like is not None:
+        return iso_like.group(0)
     match = _LOCOMO_DATE_RE.search(raw)
     if match is None:
         return raw.strip()

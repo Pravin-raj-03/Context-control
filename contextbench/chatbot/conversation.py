@@ -30,6 +30,7 @@ from typing import Iterator
 from contextbench.core.config_schema import QATiming
 from contextbench.core.types import Message, QAItem
 from contextbench.datasets.base import ConversationSample
+from contextbench.evaluation.evidence import parse_evidence_ids
 
 
 class Conversation:
@@ -132,11 +133,7 @@ class ConversationReplayer:
         if self._qa_timing == "end":
             yield from self._iter_end(sample)
         elif self._qa_timing == "per_session":
-            raise NotImplementedError(
-                "qa_timing='per_session' (streaming evaluation) is not implemented "
-                "in Phase 1. It requires mapping each QA to the checkpoint after "
-                "its latest evidence turn; see the roadmap."
-            )
+            yield from self._iter_per_session(sample)
         else:  # pragma: no cover - guarded by config validation
             raise NotImplementedError(f"Unknown qa_timing '{self._qa_timing}'.")
 
@@ -155,6 +152,41 @@ class ConversationReplayer:
                 turn_index=index,
                 is_last=is_last,
                 checkpoint_qa=sample.qa_items if is_last else (),
+            )
+
+    @staticmethod
+    def _iter_per_session(sample: ConversationSample) -> Iterator[ReplayStep]:
+        """Ask each probe as soon as its evidence is complete.
+
+        A probe is evaluated after the last turn of the session that holds its
+        latest evidence turn, i.e. mid-conversation, with that evidence among
+        the most recent turns. Probes without evidence in the history are asked
+        at the end. Probes due at the same turn keep their dataset order.
+        """
+        messages = sample.messages
+        n = len(messages)
+        if n == 0:
+            return
+        index_of = {m.meta.get("dia_id"): i for i, m in enumerate(messages)}
+        session_end: dict[int, int] = {}
+        end = n - 1
+        for i in range(n - 1, -1, -1):
+            if i < n - 1 and messages[i].session_id != messages[i + 1].session_id:
+                end = i
+            session_end[i] = end
+
+        due: dict[int, list[QAItem]] = {}
+        for qa in sample.qa_items:
+            hits = [index_of[d] for d in parse_evidence_ids(qa.evidence) if d in index_of]
+            at = session_end[max(hits)] if hits else n - 1
+            due.setdefault(at, []).append(qa)
+
+        for index, message in enumerate(messages):
+            yield ReplayStep(
+                message=message,
+                turn_index=index,
+                is_last=index == n - 1,
+                checkpoint_qa=tuple(due.get(index, ())),
             )
 
     @property

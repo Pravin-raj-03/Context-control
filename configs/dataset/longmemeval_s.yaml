@@ -1,0 +1,11 @@
+# LongMemEval-S: 500 questions, each with its own ~115K-token history of ~50
+# chat sessions on mostly unrelated topics. Download longmemeval_s_cleaned.json
+# from the HuggingFace dataset xiaowu0162/longmemeval-cleaned (MIT license).
+name: longmemeval
+path: data/longmemeval/longmemeval_s_cleaned.json
+num_samples: null
+max_qa_per_sample: null
+qa_categories: null          # 1=single-session-user, 2=single-session-assistant,
+                             # 3=single-session-preference, 4=multi-session,
+                             # 5=temporal-reasoning, 6=knowledge-update
+include_image_captions: true # unused (text only)

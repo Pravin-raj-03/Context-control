@@ -35,6 +35,7 @@ from contextbench.policies.base import POLICY_REGISTRY, ContextPolicy
 
 # Register the built-in implementations (import for side effects).
 import contextbench.datasets.locomo  # noqa: F401,E402
+import contextbench.datasets.longmemeval  # noqa: F401,E402
 import contextbench.policies.sliding_window  # noqa: F401,E402
 import contextbench.chatbot.model as _model_impls  # noqa: F401,E402
 import contextbench.evaluation.evaluator as _evaluator_impls  # noqa: F401,E402

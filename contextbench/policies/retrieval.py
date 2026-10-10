@@ -24,6 +24,7 @@ from contextbench.policies.ranking import rank_turns_with_segment_prior
 class RetrievalConfig(BaseModel):
     embedder_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedder_device: str | None = None
+    embedding_cache: str | None = None
     retrieval_fraction: float = Field(default=0.5, ge=0.0, le=1.0)
     # "break" stops at the first ranked turn that doesn't fit (strict top-k);
     # "skip" passes over it and keeps filling with lower-ranked turns, the
@@ -47,7 +48,8 @@ class RetrievalPolicy(ContextPolicy):
         self._cfg = RetrievalConfig(**self._config.model_extra)
         
         self._embedder = SentenceTransformerEmbedder(
-            model_name=self._cfg.embedder_model, device=self._cfg.embedder_device
+            model_name=self._cfg.embedder_model, device=self._cfg.embedder_device,
+            cache_path=self._cfg.embedding_cache,
         )
         self._embeddings: list[np.ndarray] = []
         self._count_cache: dict[Message, int] = {}

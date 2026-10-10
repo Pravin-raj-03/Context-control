@@ -131,3 +131,33 @@ def test_segment_prior_treats_turns_after_last_checkpoint_as_one_segment():
     # checkpoint at turn 0 -> segments {0} and the open tail {1, 2}
     ranked = rank_turns_with_segment_prior(turns, [0], np.array([1.0, 0.0]), 1.0)
     assert ranked == [1, 2, 0]
+
+
+def _policy_with_fake_embedder(monkeypatch, counter, embedder, **overrides):
+    import contextbench.policies.delta_context as dc
+    from contextbench.core.config_schema import PolicyConfig
+
+    monkeypatch.setattr(dc, "SentenceTransformerEmbedder", lambda **_: embedder)
+    config = dict(name="delta_context", window=3, accumulator="displacement",
+                  change_threshold=0.3, ignore_below=0.0, min_snapshot_gap=1)
+    return dc.DeltaContextPolicy(PolicyConfig(**{**config, **overrides}), counter)
+
+
+def _topic_switch_messages():
+    from contextbench.core.types import Message
+
+    texts = ["apples and pears in the orchard"] * 10 + ["rocket engines and orbital launch"] * 10
+    return [Message(role="user", content=t, turn_id=i, speaker="Ann") for i, t in enumerate(texts)]
+
+
+@pytest.mark.parametrize("localize", [False, True])
+def test_segment_start_follows_localization(monkeypatch, counter, embedder, localize):
+    policy = _policy_with_fake_embedder(monkeypatch, counter, embedder,
+                                        localize_boundaries=localize)
+    for message in _topic_switch_messages():
+        policy.observe(message)
+    switch = [c for c in policy._checkpoints.all() if c.turn_index >= 10]
+    assert switch, "the abrupt topic switch at turn 10 should fire a checkpoint"
+    first = switch[0]
+    expected = 10 if localize else first.turn_index + 1
+    assert first.meta["segment_start"] == expected

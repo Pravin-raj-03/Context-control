@@ -20,6 +20,8 @@ class DeltaContextConfig(BaseModel):
     # -- state construction (Module 1) --
     embedder_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedder_device: str | None = None
+    embedding_cache: str | None = None
+    """Optional precomputed embedding cache (scripts/precompute_embeddings.py)."""
     window: int = Field(default=3, ge=1)
 
     # -- semantic change metric (Modules 2-3) --
@@ -64,6 +66,13 @@ class DeltaContextConfig(BaseModel):
     cached in observe(), so no extra embedding cost) instead of only the
     checkpoint pool -- matches RetrievalPolicy's recall. Set False for the
     cheaper checkpoint-only search (V1.1 behaviour)."""
+    localize_boundaries: bool = False
+    """Place each segment boundary at the sharpest single-turn semantic jump
+    among the last ``window`` turns up to the checkpoint, instead of at the
+    checkpoint turn itself. The windowed-centroid state only crosses the
+    threshold once most of the window holds the new topic, so checkpoints
+    fire ``window - 1`` turns late; without this, every new segment's first
+    turns are filed under the previous topic. Affects only the segment prior."""
     segment_prior_weight: float = Field(default=0.0, ge=0.0)
     """Full-history search only: add this weight times the query's similarity
     to each turn's *topic segment* (the turns between consecutive checkpoints,

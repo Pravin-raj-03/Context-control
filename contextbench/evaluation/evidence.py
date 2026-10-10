@@ -15,14 +15,15 @@ from typing import Iterable, Sequence
 
 from contextbench.core.types import Message
 
-# Evidence strings are usually "D2:3", but a few LoCoMo entries pack several ids
-# into one string ("D8:6; D9:17"), so ids are extracted rather than split.
-_DIA_ID_RE = re.compile(r"D\d+:\d+")
+# Evidence strings are usually one id ("D2:3" in LoCoMo, "<session>:<n>" in
+# LongMemEval), but a few LoCoMo entries pack several into one string
+# ("D8:6; D9:17"), so each string is split on separators.
+_SEPARATOR_RE = re.compile(r"[;,\s]+")
 
 
 def parse_evidence_ids(evidence: Iterable[str]) -> set[str]:
-    """Extract every ``D<session>:<turn>`` id from raw evidence strings."""
-    return {dia_id for raw in evidence for dia_id in _DIA_ID_RE.findall(raw)}
+    """Split raw evidence strings into individual turn ids."""
+    return {dia_id for raw in evidence for dia_id in _SEPARATOR_RE.split(raw) if dia_id}
 
 
 def evidence_recall(

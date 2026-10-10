@@ -96,7 +96,8 @@ class DeltaContextPolicy(ContextPolicy):
 
         # 1. State Constructor
         embedder = SentenceTransformerEmbedder(
-            model_name=self._cfg.embedder_model, device=self._cfg.embedder_device
+            model_name=self._cfg.embedder_model, device=self._cfg.embedder_device,
+            cache_path=self._cfg.embedding_cache,
         )
         self._state_constructor = WindowedCentroidConstructor(embedder, window=self._cfg.window)
 
@@ -212,6 +213,10 @@ class DeltaContextPolicy(ContextPolicy):
         decision = self._controller.decide(signals)
 
         if decision.action == ControlAction.SNAPSHOT:
+            segment_start = (
+                self._localize_segment_start() if self._cfg.localize_boundaries
+                else self._turn_index + 1
+            )
             checkpoint = Checkpoint(
                 checkpoint_id=self._checkpoints.next_id(),
                 state=current_state,
@@ -220,7 +225,7 @@ class DeltaContextPolicy(ContextPolicy):
                 timestamp=timestamp,
                 accumulated_change=acc,
                 turn_span=(self._last_checkpoint_turn + 1, self._turn_index),
-                meta={"decision_reason": decision.reason},
+                meta={"decision_reason": decision.reason, "segment_start": segment_start},
             )
             self._checkpoints.add(checkpoint)
             self._accumulator.reset(checkpoint_state=current_state)
@@ -257,7 +262,7 @@ class DeltaContextPolicy(ContextPolicy):
             if self._cfg.expand_landmark_search and self._cfg.segment_prior_weight > 0.0:
                 candidate_turn_indices = rank_turns_with_segment_prior(
                     self._turn_embeddings,
-                    [c.turn_index for c in all_ckpts],
+                    [c.meta["segment_start"] - 1 for c in all_ckpts],
                     query_state.embedding,
                     self._cfg.segment_prior_weight,
                 )
@@ -357,6 +362,27 @@ class DeltaContextPolicy(ContextPolicy):
             dropped_messages=dropped,
             policy_meta=meta,
         )
+
+    def _localize_segment_start(self) -> int:
+        """First turn of the new segment for a checkpoint firing at the current turn.
+
+        Searches the last ``window`` turns (the span the windowed centroid
+        needed to cross the threshold), never reaching back into the previous
+        segment, for the largest cosine distance between consecutive single-turn
+        embeddings, and starts the new segment at that turn.
+        """
+        all_ckpts = self._checkpoints.all()
+        floor = all_ckpts[-1].meta["segment_start"] + 1 if all_ckpts else 1
+        first = max(floor, self._turn_index - self._cfg.window + 1, 1)
+        if first > self._turn_index:
+            return self._turn_index
+
+        def jump(i: int) -> float:
+            a, b = self._turn_embeddings[i - 1], self._turn_embeddings[i]
+            denom = float(np.linalg.norm(a) * np.linalg.norm(b))
+            return 1.0 - float(np.dot(a, b)) / denom if denom > 0 else 0.0
+
+        return max(range(first, self._turn_index + 1), key=jump)
 
     def _count_message(self, message: Message) -> int:
         cached = self._count_cache.get(message)

@@ -20,7 +20,7 @@ from collections import defaultdict
 from pathlib import Path
 
 # Hyper-parameters that are not policy choices (device placement, model ids).
-_IGNORED_POLICY_KEYS = {"name", "embedder_device", "embedder_model"}
+_IGNORED_POLICY_KEYS = {"name", "embedder_device", "embedder_model", "embedding_cache"}
 
 
 def variant_label(policy: dict, varying: set[str]) -> str:
