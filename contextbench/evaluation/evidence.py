@@ -26,6 +26,12 @@ def parse_evidence_ids(evidence: Iterable[str]) -> set[str]:
     return {dia_id for raw in evidence for dia_id in _SEPARATOR_RE.split(raw) if dia_id}
 
 
+def evidence_turn_ids(evidence: Iterable[str], history: Sequence[Message]) -> tuple[int, ...]:
+    """``turn_id``s of the evidence turns present in ``history``, ascending."""
+    wanted = parse_evidence_ids(evidence)
+    return tuple(sorted(m.turn_id for m in history if m.meta.get("dia_id") in wanted))
+
+
 def evidence_recall(
     evidence: Iterable[str],
     selected: Sequence[Message],

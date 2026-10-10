@@ -148,6 +148,7 @@ class ExperimentLogger:
                 record = self._row(scored)
                 record["policy_meta"] = dict(scored.prediction.policy_meta)
                 record["context_turn_ids"] = list(scored.prediction.context_turn_ids)
+                record["evidence_turn_ids"] = list(scored.prediction.evidence_turn_ids)
                 handle.write(json.dumps(record, default=str) + "\n")
         return path
 

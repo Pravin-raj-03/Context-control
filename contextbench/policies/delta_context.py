@@ -48,7 +48,7 @@ from contextbench.context.state import SemanticState, SentenceTransformerEmbedde
 from contextbench.core.config_schema import PolicyConfig
 from contextbench.core.types import ContextResult, Message, TokenCounter
 from contextbench.policies.base import ContextPolicy, register_policy
-from contextbench.policies.ranking import rank_turns_with_segment_prior
+from contextbench.policies.ranking import rank_topic_first, rank_turns_with_segment_prior
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +243,7 @@ class DeltaContextPolicy(ContextPolicy):
 
         landmark_budget = int(budget * self._cfg.landmark_fraction)
         all_ckpts = self._checkpoints.all()
+        topic = None
 
         # 1. Rank landmark candidate turn indices, best-first:
         #    - query given + query-aware landmarks enabled + full-history search
@@ -259,7 +260,15 @@ class DeltaContextPolicy(ContextPolicy):
                 embedding=np.asarray(query_embedding, dtype=np.float32),
                 token_count=0, turn_index=-1, timestamp=-1.0,
             )
-            if self._cfg.expand_landmark_search and self._cfg.segment_prior_weight > 0.0:
+            if self._cfg.expand_landmark_search and self._cfg.topic_first_k > 0:
+                topic = rank_topic_first(
+                    self._turn_embeddings,
+                    [c.meta["segment_start"] - 1 for c in all_ckpts],
+                    query_state.embedding,
+                    self._cfg.topic_first_k,
+                )
+                candidate_turn_indices = topic.order
+            elif self._cfg.expand_landmark_search and self._cfg.segment_prior_weight > 0.0:
                 candidate_turn_indices = rank_turns_with_segment_prior(
                     self._turn_embeddings,
                     [c.meta["segment_start"] - 1 for c in all_ckpts],
@@ -355,6 +364,9 @@ class DeltaContextPolicy(ContextPolicy):
             ),
             "segment_prior_weight": self._cfg.segment_prior_weight,
         }
+        if topic is not None:
+            meta.update(topic_spans=topic.top_spans, topic_comparisons=topic.comparisons,
+                        topic_segments=topic.segments)
 
         return ContextResult(
             messages=tuple(combined),

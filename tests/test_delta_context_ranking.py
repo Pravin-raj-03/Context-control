@@ -20,6 +20,7 @@ from contextbench.context.state import SemanticState
 from contextbench.policies.delta_context import (rank_checkpoints_by_relevance,
                                                   rank_turn_indices_by_relevance,
                                                   rank_turns_with_segment_prior)
+from contextbench.policies.ranking import rank_topic_first
 
 
 def _state(vec, turn=0):
@@ -161,3 +162,21 @@ def test_segment_start_follows_localization(monkeypatch, counter, embedder, loca
     first = switch[0]
     expected = 10 if localize else first.turn_index + 1
     assert first.meta["segment_start"] == expected
+
+
+def test_topic_first_searches_the_best_segment_then_its_turns():
+    # segments: {0,1} about x, {2,3} about y, {4,5} about x again but weaker
+    turns = _turns([1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9], [0.6, 0.8], [0.5, 0.9])
+    ranking = rank_topic_first(turns, [1, 3], np.array([1.0, 0.0]), top_k=1)
+    assert ranking.top_spans == [(0, 1)]
+    assert ranking.order[:2] == [0, 1]           # the chosen topic's turns first
+    assert sorted(ranking.order) == list(range(6))  # then every other turn
+    assert ranking.segments == 3
+    assert ranking.comparisons == 3 + 2          # 3 centroids + 2 turns inside
+
+
+def test_topic_first_k_covers_several_segments():
+    turns = _turns([1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9], [0.6, 0.8], [0.5, 0.9])
+    ranking = rank_topic_first(turns, [1, 3], np.array([1.0, 0.0]), top_k=2)
+    assert ranking.top_spans == [(0, 1), (4, 5)]
+    assert set(ranking.order[:4]) == {0, 1, 4, 5}

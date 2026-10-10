@@ -73,6 +73,11 @@ class DeltaContextConfig(BaseModel):
     threshold once most of the window holds the new topic, so checkpoints
     fire ``window - 1`` turns late; without this, every new segment's first
     turns are filed under the previous topic. Affects only the segment prior."""
+    topic_first_k: int = Field(default=0, ge=0)
+    """Full-history search only: treat the history as a store of topic
+    segments. Rank segments by query-to-centroid similarity, then rank only the
+    turns inside the ``topic_first_k`` best (the rest follow, so the budget is
+    always used). 0 disables it; takes precedence over the segment prior."""
     segment_prior_weight: float = Field(default=0.0, ge=0.0)
     """Full-history search only: add this weight times the query's similarity
     to each turn's *topic segment* (the turns between consecutive checkpoints,

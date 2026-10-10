@@ -18,7 +18,7 @@ from contextbench.core.config_schema import PolicyConfig
 from contextbench.core.types import ContextResult, Message, TokenCounter
 from contextbench.policies.base import ContextPolicy, register_policy
 from contextbench.context.state import SentenceTransformerEmbedder
-from contextbench.policies.ranking import rank_turns_with_segment_prior
+from contextbench.policies.ranking import rank_topic_first, rank_turns_with_segment_prior
 
 
 class RetrievalConfig(BaseModel):
@@ -37,6 +37,10 @@ class RetrievalConfig(BaseModel):
     segment_prior_weight: float = Field(default=0.0, ge=0.0)
     segment_source: Literal["fixed", "session"] = "fixed"
     segment_turns: int = Field(default=20, ge=1)
+    # Topic-first control: the same two-stage search ΔContext's topic store
+    # uses (segments first, then turns inside the best `topic_first_k`), over
+    # fixed-size or session segments. 0 disables it.
+    topic_first_k: int = Field(default=0, ge=0)
 
 
 @register_policy("retrieval")
@@ -80,12 +84,21 @@ class RetrievalPolicy(ContextPolicy):
         selected_retrieved: list[Message] = []
         retrieved_indices = set()
         retrieval_tokens = 0
+        topic = None
 
         # Only perform retrieval if we have a query and a non-zero retrieval budget
         if query and retrieval_budget > 0 and max_idx > 0:
             query_emb = self._embedder.embed(query)
             
-            if self._cfg.segment_prior_weight > 0.0:
+            if self._cfg.topic_first_k > 0:
+                topic = rank_topic_first(
+                    {i: self._embeddings[i] for i in range(max_idx)},
+                    self._segment_boundaries(history, max_idx),
+                    query_emb,
+                    self._cfg.topic_first_k,
+                )
+                ranked = topic.order
+            elif self._cfg.segment_prior_weight > 0.0:
                 ranked = rank_turns_with_segment_prior(
                     {i: self._embeddings[i] for i in range(max_idx)},
                     self._segment_boundaries(history, max_idx),
@@ -144,6 +157,9 @@ class RetrievalPolicy(ContextPolicy):
             "retrieval_tokens": retrieval_tokens,
             "tail_tokens": tail_tokens,
         }
+        if topic is not None:
+            meta.update(topic_spans=topic.top_spans, topic_comparisons=topic.comparisons,
+                        topic_segments=topic.segments)
 
         return ContextResult(
             messages=tuple(combined),

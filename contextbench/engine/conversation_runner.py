@@ -31,7 +31,7 @@ from contextbench.chatbot.model import ModelBackend
 from contextbench.chatbot.prompt_builder import PromptBuilder
 from contextbench.core.types import QAItem
 from contextbench.datasets.base import ConversationSample
-from contextbench.evaluation.evidence import evidence_recall
+from contextbench.evaluation.evidence import evidence_recall, evidence_turn_ids
 from contextbench.policies.base import ContextPolicy
 
 
@@ -65,6 +65,8 @@ class QAPrediction:
     evidence_recall: float | None = None
     # turn_ids of the selected context, for offline re-analysis
     context_turn_ids: tuple[int, ...] = ()
+    # turn_ids of the probe's evidence turns present in the history
+    evidence_turn_ids: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,4 +163,5 @@ class ConversationRunner:
             adversarial=bool(qa.meta.get("adversarial", False)),
             evidence_recall=evidence_recall(qa.evidence, context.messages, history),
             context_turn_ids=tuple(m.turn_id for m in context.messages),
+            evidence_turn_ids=evidence_turn_ids(qa.evidence, history),
         )

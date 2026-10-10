@@ -63,6 +63,8 @@ def main() -> None:
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--threads", type=int, default=4,
                         help="CPU threads per run (OMP/MKL).")
+    parser.add_argument("--skip-done", action="store_true",
+                        help="Skip runs whose log shows a completed run (resume a sweep).")
     args = parser.parse_args()
 
     output_dir = next((o.split("=", 1)[1] for o in args.common
@@ -71,6 +73,13 @@ def main() -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
 
     runs = [(variant, budget) for variant in args.variant for budget in args.budgets]
+    if args.skip_done:
+        def done(variant: str, budget: int) -> bool:
+            log = log_dir / f"{_slug(variant)}_b{budget}.log"
+            return log.is_file() and "artifacts   :" in log.read_text(encoding="utf-8", errors="replace")
+        skipped = [r for r in runs if done(*r)]
+        runs = [r for r in runs if r not in skipped]
+        print(f"skipping {len(skipped)} completed run(s)", flush=True)
     print(f"{len(runs)} runs, {args.jobs} at a time; logs in {log_dir}", flush=True)
     failures = 0
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
