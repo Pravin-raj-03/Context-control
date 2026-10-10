@@ -1,0 +1,22 @@
+# LongMemEval with the v2 setup (see locomo_v2.yaml): session dates on every
+# line, abstention scoring for the `_abs` questions, short answers. Adds the
+# date each question is asked, which LongMemEval's temporal questions are
+# relative to ("how many days ago...").
+name: longmemeval_v2
+output_dir: experiments/results
+qa_timing: end
+evaluator: locomo_qa
+render_session_dates: true
+generate: true
+system_prompt: >-
+  You are a helpful assistant answering questions about your past conversations
+  with the user. Answer using only information from those conversations.
+question_template: |-
+  Past conversations:
+  {transcript}
+
+  Each line starts with the date of its session. Today is {question_date}. Answer the question with a short phrase, using words from the conversations where possible. For questions about when something happened or how long ago, answer with a date or a duration worked out from the line dates and today's date. If the conversations do not contain the answer, reply exactly: Not mentioned in the conversation.
+
+  Question: {question}
+  Short answer:
+log_level: INFO

@@ -71,6 +71,7 @@ class PromptBuilder:
         question: str,
         *,
         system_prompt: str | None = None,
+        question_date: str | None = None,
     ) -> list[ChatMessage]:
         """Assemble the chat-role prompt.
 
@@ -78,6 +79,9 @@ class PromptBuilder:
             context_messages: The policy-selected messages, in chronological order.
             question: The question to answer.
             system_prompt: Optional override of the configured system prompt.
+            question_date: When the question is asked, for templates with a
+                ``{question_date}`` field (LongMemEval's temporal questions are
+                relative to it); rendered as an empty string when absent.
 
         Returns:
             A two-element list ``[{"role": "system", ...}, {"role": "user", ...}]``
@@ -89,7 +93,7 @@ class PromptBuilder:
             else _EMPTY_TRANSCRIPT_PLACEHOLDER
         )
         user_content = self._question_template.format(
-            transcript=transcript, question=question
+            transcript=transcript, question=question, question_date=question_date or ""
         )
         return [
             {"role": "system", "content": system_prompt or self._system_prompt},

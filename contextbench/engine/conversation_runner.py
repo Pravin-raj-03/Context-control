@@ -139,7 +139,9 @@ class ConversationRunner:
         history = self._conversation.history
         context = self._policy.build_context(history, qa.question, self._budget)
         if self._model is not None:
-            prompt = self._prompt_builder.build(context.messages, qa.question)
+            prompt = self._prompt_builder.build(
+                context.messages, qa.question, question_date=qa.meta.get("question_date")
+            )
             response = self._model.generate(prompt)
             text, prompt_tokens = response.text, response.prompt_tokens
             response_tokens, latency_s = response.response_tokens, response.latency_s

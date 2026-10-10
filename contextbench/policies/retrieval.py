@@ -18,6 +18,7 @@ from contextbench.core.config_schema import PolicyConfig
 from contextbench.core.types import ContextResult, Message, TokenCounter
 from contextbench.policies.base import ContextPolicy, register_policy
 from contextbench.context.state import SentenceTransformerEmbedder
+from contextbench.context import segmenters
 from contextbench.policies.ranking import rank_topic_first, rank_turns_with_segment_prior
 
 
@@ -35,8 +36,14 @@ class RetrievalConfig(BaseModel):
     # no semantic signal -- fixed runs of `segment_turns` turns, or the
     # dataset's own session boundaries. 0 disables it.
     segment_prior_weight: float = Field(default=0.0, ge=0.0)
-    segment_source: Literal["fixed", "session"] = "fixed"
+    segment_source: Literal[
+        "fixed", "session", "adjacent", "semantic_chunker", "texttiling"
+    ] = "fixed"
     segment_turns: int = Field(default=20, ge=1)
+    # Parameter of the embedding-based segmenters (contextbench.context.segmenters):
+    # distance threshold for "adjacent", percentile for "semantic_chunker",
+    # block size for "texttiling".
+    segment_param: float | None = None
     # Topic-first control: the same two-stage search ΔContext's topic store
     # uses (segments first, then turns inside the best `topic_first_k`), over
     # fixed-size or session segments. 0 disables it.
@@ -185,11 +192,18 @@ class RetrievalPolicy(ContextPolicy):
 
     def _segment_boundaries(self, history: Sequence[Message], max_idx: int) -> list[int]:
         """Last turn index of each segment for the segment-prior control."""
-        if self._cfg.segment_source == "session":
+        source, param = self._cfg.segment_source, self._cfg.segment_param
+        if source == "session":
             return [i for i in range(max_idx - 1)
                     if history[i + 1].session_id != history[i].session_id]
-        k = self._cfg.segment_turns
-        return list(range(k - 1, max_idx, k))
+        if source == "fixed":
+            return segmenters.fixed_boundaries(max_idx, self._cfg.segment_turns)
+        embeddings = np.stack(self._embeddings[:max_idx])
+        if source == "adjacent":
+            return segmenters.adjacent_threshold_boundaries(embeddings, float(param))
+        if source == "semantic_chunker":
+            return segmenters.semantic_chunker_boundaries(embeddings, float(param))
+        return segmenters.texttiling_boundaries(embeddings, block=int(param or 3))
 
     def _count_message(self, message: Message) -> int:
         cached = self._count_cache.get(message)
