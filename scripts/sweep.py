@@ -38,6 +38,10 @@ def _slug(text: str) -> str:
 def run_one(overrides: list[str], log_path: Path, threads: int) -> tuple[int, float]:
     env = dict(os.environ, OMP_NUM_THREADS=str(threads), MKL_NUM_THREADS=str(threads),
                PYTHONIOENCODING="utf-8")
+    if "experiment.generate=false" in overrides:
+        # Selection-only runs never need the GPU; hiding it keeps parallel runs
+        # from each holding a CUDA context next to a generation run.
+        env["CUDA_VISIBLE_DEVICES"] = ""
     start = time.perf_counter()
     with log_path.open("w", encoding="utf-8") as log:
         code = subprocess.call([sys.executable, "benchmark.py", *overrides],

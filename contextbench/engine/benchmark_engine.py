@@ -109,11 +109,16 @@ class BenchmarkEngine:
         logger.info("Loading tokenizer '%s'", config.model.hf_id)
         tokenizer = TokenizerWrapper.from_config(config.model, formatter=formatter)
 
-        import torch
-        if torch.cuda.is_available():
-            logger.info("CUDA DETECTED: Running on GPU (%s)", torch.cuda.get_device_name(0))
-        else:
-            logger.warning("NO CUDA DETECTED: Running on CPU. This will be very slow.")
+        if config.experiment.generate:
+            # Only generation needs the GPU. Querying the device creates a CUDA
+            # context (hundreds of MB), so selection-only runs skip it: several
+            # of them alongside a generation run would otherwise exhaust GPU
+            # memory.
+            import torch
+            if torch.cuda.is_available():
+                logger.info("CUDA DETECTED: Running on GPU (%s)", torch.cuda.get_device_name(0))
+            else:
+                logger.warning("NO CUDA DETECTED: Running on CPU. This will be very slow.")
 
         prompt_builder = PromptBuilder.from_config(config.experiment, formatter)
         dataset = DATASET_REGISTRY.create(config.dataset.name, config.dataset)
@@ -149,8 +154,10 @@ class BenchmarkEngine:
             A :class:`BenchmarkResult` with raw predictions and system metrics.
             Scoring (EM/F1) is applied separately by the evaluation stage.
         """
+        uses_gpu = self._model is not None
         self._seed_everything(self._config.seed)
-        self._reset_peak_gpu_memory()
+        if uses_gpu:
+            self._reset_peak_gpu_memory()
 
         start = time.perf_counter()
         results: list[ConversationResult] = []
@@ -163,7 +170,7 @@ class BenchmarkEngine:
             total_wall_s=total_wall_s,
             num_conversations=len(results),
             num_predictions=num_predictions,
-            peak_gpu_mem_mb=self._peak_gpu_memory_mb(),
+            peak_gpu_mem_mb=self._peak_gpu_memory_mb() if uses_gpu else None,
             cpu_mem_mb=self._cpu_memory_mb(),
         )
         logger.info(
