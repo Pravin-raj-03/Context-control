@@ -194,3 +194,21 @@ def test_segment_mean_reference_splits_short_topics(monkeypatch, counter, embedd
         policy.observe(Message(role="user", content=t, turn_id=i, speaker="Ann"))
     starts = [c.meta["segment_start"] for c in policy._checkpoints.all()]
     assert starts == [3, 6]
+
+
+@pytest.mark.parametrize("mode,threshold", [("absolute", 0.3), ("zscore", 1.0)])
+def test_lookahead_detector_commits_exact_boundaries_late(monkeypatch, counter, embedder,
+                                                          mode, threshold):
+    from contextbench.core.types import Message
+
+    policy = _policy_with_fake_embedder(monkeypatch, counter, embedder, detector="lookahead",
+                                        lookahead=2, threshold_mode=mode,
+                                        change_threshold=threshold, min_segment_turns=2)
+    texts = (["apples and pears in the orchard"] * 6 + ["rocket engines and orbital launch"] * 6
+             + ["violin concerto in the evening"] * 6)
+    for i, t in enumerate(texts):
+        policy.observe(Message(role="user", content=t, turn_id=i, speaker="Ann"))
+    checkpoints = policy._checkpoints.all()
+    assert [c.meta["segment_start"] for c in checkpoints] == [6, 12]
+    # committed lookahead + 1 turns after the last turn of the old topic
+    assert [c.turn_index for c in checkpoints] == [8, 14]

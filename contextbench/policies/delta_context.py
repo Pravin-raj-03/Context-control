@@ -52,6 +52,9 @@ from contextbench.policies.ranking import rank_topic_first, rank_turns_with_segm
 
 logger = logging.getLogger(__name__)
 
+# Floor on the spread of gap scores used by the z-score threshold.
+_ZSCORE_MIN_STD = 0.05
+
 
 def rank_checkpoints_by_relevance(
     checkpoints: Sequence[Checkpoint], query_state: SemanticState, metric: SemanticChangeMetric
@@ -149,6 +152,10 @@ class DeltaContextPolicy(ContextPolicy):
         self._turn_embeddings: dict[int, np.ndarray] = {}
         # First turn of the open (current) segment, for `reference: segment_mean`.
         self._segment_start = 0
+        # Lookahead detector state: gap scores by gap index (gap g lies between
+        # turns g and g+1), and every score seen, for the z-score threshold.
+        self._gap_scores: dict[int, float] = {}
+        self._score_history: list[float] = []
 
         # Cache for counting message tokens exactly like sliding window does
         self._count_cache: dict[Message, int] = {}
@@ -166,6 +173,8 @@ class DeltaContextPolicy(ContextPolicy):
         self._max_stagnant_streak = 0
         self._turn_embeddings.clear()
         self._segment_start = 0
+        self._gap_scores.clear()
+        self._score_history.clear()
         self._count_cache.clear()
 
     def observe(self, message: Message) -> None:
@@ -216,6 +225,11 @@ class DeltaContextPolicy(ContextPolicy):
         )
 
         decision = self._controller.decide(signals)
+        if self._cfg.detector == "lookahead":
+            self._lookahead_step(current_state, acc)
+            self._last_state = current_state
+            self._turn_index += 1
+            return
 
         if decision.action == ControlAction.SNAPSHOT:
             segment_start = (
@@ -380,6 +394,79 @@ class DeltaContextPolicy(ContextPolicy):
             dropped_messages=dropped,
             policy_meta=meta,
         )
+
+    def _unit_mean(self, first: int, last: int) -> np.ndarray:
+        rows = np.stack([self._turn_embeddings[i] for i in range(first, last + 1)])
+        rows = rows / np.maximum(np.linalg.norm(rows, axis=1, keepdims=True), 1e-12)
+        mean = rows.mean(axis=0)
+        return mean / max(float(np.linalg.norm(mean)), 1e-12)
+
+    def _gap_score(self, gap: int) -> float:
+        """Distance between the open topic up to turn ``gap`` and the next turns."""
+        first = self._segment_start
+        if self._cfg.left_context is not None:
+            first = max(first, gap - self._cfg.left_context + 1)
+        left = self._unit_mean(first, gap)
+        right = self._unit_mean(gap + 1, gap + self._cfg.lookahead)
+        return 1.0 - float(left @ right)
+
+    def _lookahead_step(self, current_state: SemanticState, acc: float) -> None:
+        """Delayed-commitment boundary decision for the gap ``lookahead + 1`` turns back.
+
+        With t the turn just observed, gap g = t - lookahead - 1 is decided now:
+        its score uses turns g+1..g+lookahead, and the next gap's score (needed
+        for the local-maximum test) uses turns up to t. A committed boundary is
+        never revised.
+        """
+        t = self._turn_index
+        look = self._cfg.lookahead
+        newest_gap = t - look  # the latest gap whose right window is complete
+        if newest_gap >= self._segment_start:
+            self._gap_scores[newest_gap] = self._gap_score(newest_gap)
+            self._score_history.append(self._gap_scores[newest_gap])
+        gap = newest_gap - 1
+        if gap < self._segment_start + self._cfg.min_segment_turns - 1:
+            return
+        score = self._gap_scores.get(gap)
+        if score is None:
+            return
+        if self._cfg.threshold_mode == "zscore":
+            # Calibrate on every gap score this conversation has produced so
+            # far except this gap's own; the spread is floored so a run of
+            # near-identical turns cannot shrink the cut-off to nothing.
+            others = list(self._score_history)
+            others.remove(score)
+            if len(others) < 2:
+                return
+            mean = float(np.mean(others))
+            std = max(float(np.std(others)), _ZSCORE_MIN_STD)
+            passes = score >= mean + self._cfg.change_threshold * std
+        else:
+            passes = score >= self._cfg.change_threshold
+        previous = self._gap_scores.get(gap - 1, -np.inf)
+        following = self._gap_scores.get(gap + 1, -np.inf)
+        if not (passes and score >= previous and score >= following):
+            return
+        segment_start = gap + 1
+        checkpoint = Checkpoint(
+            checkpoint_id=self._checkpoints.next_id(),
+            state=current_state,
+            turn_index=t,
+            token_count=current_state.token_count,
+            timestamp=float(t),
+            accumulated_change=score,
+            turn_span=(self._segment_start, gap),
+            meta={"decision_reason": f"lookahead gap score {score:.3f}",
+                  "segment_start": segment_start},
+        )
+        self._checkpoints.add(checkpoint)
+        self._accumulator.reset(checkpoint_state=current_state)
+        self._last_checkpoint_turn = t
+        self._segment_start = segment_start
+        # Scores of gaps inside the new topic were computed against the old
+        # one; drop them so later decisions only use the new topic.
+        for g in [g for g in self._gap_scores if g >= segment_start]:
+            del self._gap_scores[g]
 
     def _segment_mean_displacement(self, current_state: SemanticState) -> float:
         """1 - cos(mean of the open segment before the current window, current state).

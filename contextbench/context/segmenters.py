@@ -59,14 +59,16 @@ def semantic_chunker_boundaries(embeddings: np.ndarray, percentile: float) -> li
     return [i - 1 for i in range(1, len(d)) if d[i] > threshold]
 
 
-def texttiling_boundaries(embeddings: np.ndarray, block: int = 3) -> list[int]:
+def texttiling_boundaries(embeddings: np.ndarray, block: int = 3,
+                          cutoff_std: float = 0.5) -> list[int]:
     """TextTiling over turn embeddings with Hearst's depth-score cutoff.
 
     The gap before turn ``i`` is scored by the cosine similarity between the
     mean embedding of the ``block`` turns before it and of the ``block`` turns
     from it on. A gap's depth is how far its score dips below the nearest peaks
-    on either side; gaps deeper than ``mean - std / 2`` of all depths, and
-    deeper than their neighbours (local maxima), become boundaries.
+    on either side; gaps deeper than ``mean - cutoff_std * std`` of all depths
+    (Hearst's cutoff is ``cutoff_std = 0.5``), and deeper than their neighbours
+    (local maxima), become boundaries.
     """
     matrix = _normalized(embeddings)
     n = len(matrix)
@@ -94,7 +96,7 @@ def texttiling_boundaries(embeddings: np.ndarray, block: int = 3) -> list[int]:
             right_peak = scores[k]
         depth[j] = (left_peak - s) + (right_peak - s)
 
-    cutoff = depth.mean() - depth.std() / 2.0
+    cutoff = depth.mean() - cutoff_std * depth.std()
     boundaries = []
     for j, i in enumerate(gaps):
         is_local_max = (j == 0 or depth[j] >= depth[j - 1]) and (

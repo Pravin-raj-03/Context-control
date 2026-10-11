@@ -68,6 +68,27 @@ class DeltaContextConfig(BaseModel):
     cached in observe(), so no extra embedding cost) instead of only the
     checkpoint pool -- matches RetrievalPolicy's recall. Set False for the
     cheaper checkpoint-only search (V1.1 behaviour)."""
+    detector: Literal["accumulator", "lookahead"] = "accumulator"
+    """How topic boundaries are found. ``accumulator``: the controller fires a
+    checkpoint when the accumulated change crosses ``change_threshold`` (V1/V2).
+    ``lookahead`` (V3, delayed commitment): the gap after turn g is scored once
+    ``lookahead`` more turns have arrived, as the distance between the open
+    topic so far and those next turns; it becomes a boundary if the score is a
+    local maximum and clears the threshold. Decisions arrive ``lookahead + 1``
+    turns late and are never revised."""
+    lookahead: int = Field(default=2, ge=1)
+    """Turns of look-ahead for the ``lookahead`` detector (its decision delay is
+    one more than this)."""
+    left_context: int | None = None
+    """``lookahead`` detector: how many of the open topic's most recent turns
+    form its left representation (``None``: the whole open topic)."""
+    threshold_mode: Literal["absolute", "zscore"] = "absolute"
+    """``lookahead`` detector: ``absolute`` compares the gap score with
+    ``change_threshold``; ``zscore`` with the running mean plus
+    ``change_threshold`` standard deviations of this conversation's gap scores
+    so far, so each conversation calibrates its own cut-off."""
+    min_segment_turns: int = Field(default=2, ge=1)
+    """``lookahead`` detector: smallest topic it will close, in turns."""
     reference: Literal["checkpoint", "segment_mean"] = "checkpoint"
     """What the current window is compared against when deciding a checkpoint.
     ``checkpoint``: the accumulator's own signal (for ``displacement``, the
