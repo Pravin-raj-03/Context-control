@@ -1,0 +1,58 @@
+{
+  "step": 10,
+  "histories": 250,
+  "parameters": {
+    "fixed": 5,
+    "adjacent": 0.85,
+    "semantic_chunker": 90,
+    "texttiling": 5,
+    "delta_context": 0.75
+  },
+  "results": {
+    "\u0394Context (online)": {
+      "removed_boundaries_per_100_turns": 0.0,
+      "late_cuts_per_100_turns": 0.0,
+      "segments_reindexed_per_new_turn": 0.19314817425630904,
+      "median_detection_delay_turns": 7.0,
+      "mean_detection_delay_turns": 7.0992051810420955,
+      "final_f1@1": 0.8397210823097228,
+      "final_pk": 0.09944053201991407
+    },
+    "Adjacent threshold (online)": {
+      "removed_boundaries_per_100_turns": 0.0,
+      "late_cuts_per_100_turns": 0.0,
+      "segments_reindexed_per_new_turn": 0.20487473150828073,
+      "median_detection_delay_turns": 6.0,
+      "mean_detection_delay_turns": 5.5334535256410255,
+      "final_f1@1": 0.7779426892603678,
+      "final_pk": 0.12486431302366031
+    },
+    "Fixed-size chunks (online)": {
+      "removed_boundaries_per_100_turns": 0.0,
+      "late_cuts_per_100_turns": 0.0,
+      "segments_reindexed_per_new_turn": 0.2008276594156625,
+      "median_detection_delay_turns": 6.0,
+      "mean_detection_delay_turns": 7.3919055163474,
+      "final_f1@1": 0.3752981581725452,
+      "final_pk": 0.5335456015956564
+    },
+    "Semantic chunking (re-run)": {
+      "removed_boundaries_per_100_turns": 2.873717308114169,
+      "late_cuts_per_100_turns": 2.5698523736401233,
+      "segments_reindexed_per_new_turn": 0.27126164155215166,
+      "median_detection_delay_turns": 6.0,
+      "mean_detection_delay_turns": 17.99047619047619,
+      "final_f1@1": 0.7685512149423477,
+      "final_pk": 0.14025124159915922
+    },
+    "TextTiling (re-run)": {
+      "removed_boundaries_per_100_turns": 2.727472152484949,
+      "late_cuts_per_100_turns": 0.4054240703276704,
+      "segments_reindexed_per_new_turn": 0.2722734095753062,
+      "median_detection_delay_turns": 8.0,
+      "mean_detection_delay_turns": 8.646385489125649,
+      "final_f1@1": 0.7737996365291192,
+      "final_pk": 0.21197765828864265
+    }
+  }
+}

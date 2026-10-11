@@ -147,6 +147,8 @@ class DeltaContextPolicy(ContextPolicy):
         # cost, just retaining what would otherwise be discarded after each
         # update() call folds it into the centroid.
         self._turn_embeddings: dict[int, np.ndarray] = {}
+        # First turn of the open (current) segment, for `reference: segment_mean`.
+        self._segment_start = 0
 
         # Cache for counting message tokens exactly like sliding window does
         self._count_cache: dict[Message, int] = {}
@@ -163,6 +165,7 @@ class DeltaContextPolicy(ContextPolicy):
         self._stagnant_streak = 0
         self._max_stagnant_streak = 0
         self._turn_embeddings.clear()
+        self._segment_start = 0
         self._count_cache.clear()
 
     def observe(self, message: Message) -> None:
@@ -184,6 +187,8 @@ class DeltaContextPolicy(ContextPolicy):
         else:
             delta = self._metric.distance(self._last_state, current_state)
             acc = self._accumulator.update(delta, current_state)
+        if self._cfg.reference == "segment_mean":
+            acc = self._segment_mean_displacement(current_state)
 
         # Context-rot bookkeeping — independent of the checkpoint trigger above.
         self._rot_ema = (
@@ -228,6 +233,7 @@ class DeltaContextPolicy(ContextPolicy):
                 meta={"decision_reason": decision.reason, "segment_start": segment_start},
             )
             self._checkpoints.add(checkpoint)
+            self._segment_start = segment_start
             self._accumulator.reset(checkpoint_state=current_state)
             self._last_checkpoint_turn = self._turn_index
 
@@ -374,6 +380,22 @@ class DeltaContextPolicy(ContextPolicy):
             dropped_messages=dropped,
             policy_meta=meta,
         )
+
+    def _segment_mean_displacement(self, current_state: SemanticState) -> float:
+        """1 - cos(mean of the open segment before the current window, current state).
+
+        0 while the open segment has no turns outside the current window.
+        """
+        last_outside = self._turn_index - self._cfg.window
+        if last_outside < self._segment_start:
+            return 0.0
+        rows = np.stack([self._turn_embeddings[i]
+                         for i in range(self._segment_start, last_outside + 1)])
+        rows = rows / np.maximum(np.linalg.norm(rows, axis=1, keepdims=True), 1e-12)
+        mean = rows.mean(axis=0)
+        state = np.asarray(current_state.embedding, dtype=np.float64)
+        denom = float(np.linalg.norm(mean) * np.linalg.norm(state))
+        return 1.0 - float(mean @ state) / denom if denom > 0 else 0.0
 
     def _localize_segment_start(self) -> int:
         """First turn of the new segment for a checkpoint firing at the current turn.

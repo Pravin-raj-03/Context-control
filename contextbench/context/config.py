@@ -9,6 +9,8 @@ are a future extension that only changes the controller, not this schema.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -66,6 +68,14 @@ class DeltaContextConfig(BaseModel):
     cached in observe(), so no extra embedding cost) instead of only the
     checkpoint pool -- matches RetrievalPolicy's recall. Set False for the
     cheaper checkpoint-only search (V1.1 behaviour)."""
+    reference: Literal["checkpoint", "segment_mean"] = "checkpoint"
+    """What the current window is compared against when deciding a checkpoint.
+    ``checkpoint``: the accumulator's own signal (for ``displacement``, the
+    windowed state recorded at the last checkpoint). ``segment_mean``: the mean
+    embedding of the current topic so far, excluding the current window, i.e.
+    online clustering -- a new window far from everything said on the topic
+    starts a new one. The latter suits short topics, where a single snapshot
+    state is a noisy reference."""
     localize_boundaries: bool = False
     """Place each segment boundary at the sharpest single-turn semantic jump
     among the last ``window`` turns up to the checkpoint, instead of at the

@@ -180,3 +180,17 @@ def test_topic_first_k_covers_several_segments():
     ranking = rank_topic_first(turns, [1, 3], np.array([1.0, 0.0]), top_k=2)
     assert ranking.top_spans == [(0, 1), (4, 5)]
     assert set(ranking.order[:4]) == {0, 1, 4, 5}
+
+
+def test_segment_mean_reference_splits_short_topics(monkeypatch, counter, embedder):
+    from contextbench.core.types import Message
+
+    policy = _policy_with_fake_embedder(monkeypatch, counter, embedder, window=1,
+                                        min_snapshot_gap=1, reference="segment_mean",
+                                        localize_boundaries=True)
+    texts = (["apples and pears in the orchard"] * 3 + ["rocket engines and orbital launch"] * 3
+             + ["violin concerto in the evening"] * 3)
+    for i, t in enumerate(texts):
+        policy.observe(Message(role="user", content=t, turn_id=i, speaker="Ann"))
+    starts = [c.meta["segment_start"] for c in policy._checkpoints.all()]
+    assert starts == [3, 6]
