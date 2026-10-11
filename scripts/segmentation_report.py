@@ -67,6 +67,21 @@ class _WordCounter:
         return sum(self.count_message(m) for m in messages)
 
 
+def dev_test_split(samples, seed: int = 0, dev_fraction: float = 0.5):
+    """Seeded random split into (dev, test), each in dataset order.
+
+    LongMemEval's file is grouped by question type, so splitting in file order
+    would give the two halves different question types.
+    """
+    import random
+
+    order = list(range(len(samples)))
+    random.Random(seed).shuffle(order)
+    cut = int(len(samples) * dev_fraction)
+    dev_idx, test_idx = sorted(order[:cut]), sorted(order[cut:])
+    return [samples[i] for i in dev_idx], [samples[i] for i in test_idx]
+
+
 def delta_boundaries(policy, messages) -> list[int]:
     policy.reset()
     for m in messages:
@@ -102,8 +117,7 @@ def main() -> None:
 
     config = DatasetConfig(**yaml.safe_load(args.dataset_config.read_text(encoding="utf-8")))
     samples = list(DATASET_REGISTRY.create(config.name, config))
-    split = int(len(samples) * args.dev_fraction)
-    dev, test = samples[:split], samples[split:]
+    dev, test = dev_test_split(samples, dev_fraction=args.dev_fraction)
 
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path=args.cache)
     embeddings = {s.sample_id: embedder.embed_batch([f"{m.speaker or m.role}: {m.content}"

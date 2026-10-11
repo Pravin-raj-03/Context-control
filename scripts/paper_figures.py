@@ -200,7 +200,8 @@ def segmentation_example(out: Path, params: dict, index: int = 0) -> None:
 
     config = DatasetConfig(**yaml.safe_load(Path("configs/dataset/longmemeval_s.yaml").read_text()))
     samples = list(LongMemEvalDataset(config))
-    sample = samples[len(samples) // 2 + index]  # first test-half history
+    from scripts.segmentation_report import dev_test_split
+    sample = dev_test_split(samples)[1][index]  # first test-half history
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path="data/cache/longmemeval_s_minilm.npz")
     e = embedder.embed_batch([f"{m.speaker or m.role}: {m.content}" for m in sample.messages])
     dc.SentenceTransformerEmbedder = lambda **_: embedder

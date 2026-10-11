@@ -40,7 +40,7 @@ from contextbench.core.types import Message
 from contextbench.datasets.base import DATASET_REGISTRY
 import contextbench.datasets.locomo  # noqa: F401  (registration)
 import contextbench.datasets.longmemeval  # noqa: F401  (registration)
-from scripts.segmentation_report import _WordCounter, delta_boundaries
+from scripts.segmentation_report import _WordCounter, delta_boundaries, dev_test_split
 
 
 def _mcnemar(b: int, c: int) -> float:
@@ -82,7 +82,7 @@ def main() -> None:
     params = json.loads(args.params.read_text())["chosen_parameters"]
     config = DatasetConfig(**yaml.safe_load(args.dataset.read_text()))
     samples = list(DATASET_REGISTRY.create(config.name, config))
-    test = samples[len(samples) // 2:]
+    _, test = dev_test_split(samples)
     rng = np.random.default_rng(0)
     chosen = [test[i] for i in rng.choice(len(test), size=min(args.questions, len(test)), replace=False)
               if test[i].qa_items[0].evidence and not test[i].qa_items[0].meta.get("adversarial")]

@@ -45,7 +45,7 @@ from contextbench.context.state import SentenceTransformerEmbedder
 from contextbench.core.config_schema import DatasetConfig, PolicyConfig
 from contextbench.datasets.longmemeval import LongMemEvalDataset
 from contextbench.evaluation.segmentation import boundary_prf, pk
-from scripts.segmentation_report import _WordCounter, delta_boundaries
+from scripts.segmentation_report import _WordCounter, delta_boundaries, dev_test_split
 
 HORIZON = 5
 
@@ -70,7 +70,7 @@ def main() -> None:
     params = json.loads(Path("paper/results/seg_lme.json").read_text())["chosen_parameters"]
     config = DatasetConfig(**yaml.safe_load(Path("configs/dataset/longmemeval_s.yaml").read_text()))
     samples = list(LongMemEvalDataset(config))
-    test = samples[len(samples) // 2:][: args.histories]
+    test = dev_test_split(samples)[1][: args.histories]
 
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path="data/cache/longmemeval_s_minilm.npz")
     import contextbench.policies.delta_context as dc

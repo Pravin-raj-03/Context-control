@@ -41,7 +41,7 @@ from contextbench.chatbot.formatting import TranscriptFormatter
 from contextbench.context.state import SentenceTransformerEmbedder
 from contextbench.core.config_schema import DatasetConfig, PolicyConfig
 from contextbench.datasets.longmemeval import QUESTION_TYPES, LongMemEvalDataset
-from scripts.segmentation_report import _WordCounter, delta_boundaries
+from scripts.segmentation_report import _WordCounter, delta_boundaries, dev_test_split
 
 TYPE_NAMES = {v: k for k, v in QUESTION_TYPES.items()}
 
@@ -112,8 +112,8 @@ def main() -> None:
     params = json.loads(Path("paper/results/seg_lme.json").read_text())["chosen_parameters"]
     config = DatasetConfig(**yaml.safe_load(Path("configs/dataset/longmemeval_s.yaml").read_text()))
     samples = list(LongMemEvalDataset(config))
-    half = len(samples) // 2
-    samples = samples[:half] if args.split == "dev" else samples[half:]
+    dev, test = dev_test_split(samples)
+    samples = dev if args.split == "dev" else test
 
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path="data/cache/longmemeval_s_minilm.npz")
     import contextbench.policies.delta_context as dc
