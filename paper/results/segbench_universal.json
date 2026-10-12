@@ -1,0 +1,712 @@
+{
+  "protocol": "Same selection rule for every method: one setting per method, chosen on all dev sets.\n\n``segbench.py`` gives only \u0394Context v3 a \"universal\" setting (best mean dev J over\nthe LongMemEval, SuperDialseg and TIAGE dev splits). This script applies that rule\nto every baseline too, scores each universal setting once on the four test sets,\nand compares \u0394Context v3 (universal) against each with a paired bootstrap, Holm-\ncorrected within each dataset. DialSeg711 is unseen by every method.\n\nUsage:\n    python scripts/segbench_universal.py --out paper/results/segbench_universal.json\n",
+  "universal": {
+    "Fixed-size chunks": {
+      "size": 2
+    },
+    "Adjacent-turn threshold": {
+      "theta": 0.75
+    },
+    "Semantic chunking": {
+      "p": 85
+    },
+    "TextTiling": {
+      "block": 4,
+      "cutoff_std": 0.0
+    },
+    "\u0394Context v2 (displacement)": {
+      "detector": "accumulator",
+      "accumulator": "displacement",
+      "change_threshold": 0.65,
+      "window": 2,
+      "min_snapshot_gap": 1,
+      "localize_boundaries": true
+    },
+    "\u0394Context v3 (universal)": {
+      "detector": "lookahead",
+      "lookahead": 2,
+      "left_context": 3,
+      "threshold_mode": "zscore",
+      "change_threshold": 1.0,
+      "min_segment_turns": 1
+    }
+  },
+  "datasets": {
+    "LongMemEval-S": {
+      "test_conversations": 250,
+      "test": {
+        "Fixed-size chunks": {
+          "pk": 0.532099571226837,
+          "windowdiff": 0.9895999925787838,
+          "f1@0": 0.17048219488712774,
+          "f1@1": 0.31929459091502976,
+          "J": 0.3191913118301454
+        },
+        "Adjacent-turn threshold": {
+          "pk": 0.13556806749088912,
+          "windowdiff": 0.23333813432830006,
+          "f1@0": 0.7240313940727714,
+          "f1@1": 0.7262630828915748,
+          "J": 0.7942316632909412
+        },
+        "Semantic chunking": {
+          "pk": 0.13490949175760134,
+          "windowdiff": 0.2253494237942107,
+          "f1@0": 0.7292744648307611,
+          "f1@1": 0.7325256278004816,
+          "J": 0.7971824865365799
+        },
+        "TextTiling": {
+          "pk": 0.1984386828548349,
+          "windowdiff": 0.24935722751742553,
+          "f1@0": 0.779005408733984,
+          "f1@1": 0.7826246596890326,
+          "J": 0.7902833629395747
+        },
+        "\u0394Context v2 (displacement)": {
+          "pk": 0.19316046568001963,
+          "windowdiff": 0.2910520000024312,
+          "f1@0": 0.7321134378749473,
+          "f1@1": 0.7431283046909277,
+          "J": 0.7694764860974638
+        },
+        "\u0394Context v3 (universal)": {
+          "pk": 0.09378935116810791,
+          "windowdiff": 0.13900623400399303,
+          "f1@0": 0.8479031058268158,
+          "f1@1": 0.8520398904580263,
+          "J": 0.8770568773293539
+        }
+      },
+      "tests": {
+        "\u0394Context v3 (universal) vs Fixed-size chunks [pk]": {
+          "diff": -0.43831022005872916,
+          "ci": [
+            -0.4424595144580539,
+            -0.4340092170228715
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [f1@0]": {
+          "diff": 0.6774209109396881,
+          "ci": [
+            0.666966655146326,
+            0.6878316044616768
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [J]": {
+          "diff": 0.5578655654992085,
+          "ci": [
+            0.5515946741468283,
+            0.5639531239322325
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [pk]": {
+          "diff": -0.0417787163227812,
+          "ci": [
+            -0.04621701697867569,
+            -0.03730689714429096
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [f1@0]": {
+          "diff": 0.12387171175404445,
+          "ci": [
+            0.11573524060318467,
+            0.13204856771556392
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [J]": {
+          "diff": 0.08282521403841281,
+          "ci": [
+            0.07674396734568904,
+            0.08886869585180811
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [pk]": {
+          "diff": -0.041120140589493426,
+          "ci": [
+            -0.04459648576241527,
+            -0.0376805451341367
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [f1@0]": {
+          "diff": 0.11862864099605473,
+          "ci": [
+            0.11313302414174356,
+            0.1242260124435653
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [J]": {
+          "diff": 0.07987439079277409,
+          "ci": [
+            0.0758303191283183,
+            0.08398991935266684
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [pk]": {
+          "diff": -0.10464933168672697,
+          "ci": [
+            -0.10885537198590672,
+            -0.10049456908497754
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [f1@0]": {
+          "diff": 0.06889769709283164,
+          "ci": [
+            0.06431209255028095,
+            0.07353061848179025
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [J]": {
+          "diff": 0.08677351438977929,
+          "ci": [
+            0.08266008759131194,
+            0.09090767871878037
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [pk]": {
+          "diff": -0.09937111451191175,
+          "ci": [
+            -0.10314229331447869,
+            -0.09560057972577954
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [f1@0]": {
+          "diff": 0.11578966795186853,
+          "ci": [
+            0.11130365855281538,
+            0.12031487067090411
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [J]": {
+          "diff": 0.10758039123189013,
+          "ci": [
+            0.10365671256974225,
+            0.1115557256966181
+          ],
+          "p_holm": 0.0
+        }
+      }
+    },
+    "SuperDialseg": {
+      "test_conversations": 1310,
+      "test": {
+        "Fixed-size chunks": {
+          "pk": 0.4953900054797533,
+          "windowdiff": 0.5132001014482462,
+          "f1@0": 0.45508258206394714,
+          "f1@1": 0.669544316383113,
+          "J": 0.47984628829209686
+        },
+        "Adjacent-turn threshold": {
+          "pk": 0.49262026716957824,
+          "windowdiff": 0.5576626649628741,
+          "f1@0": 0.3595526974646867,
+          "f1@1": 0.5050457985112229,
+          "J": 0.4334662151475543
+        },
+        "Semantic chunking": {
+          "pk": 0.45291915945376465,
+          "windowdiff": 0.4611024289981702,
+          "f1@0": 0.2599041120033486,
+          "f1@1": 0.44265594880098696,
+          "J": 0.403492476274792
+        },
+        "TextTiling": {
+          "pk": 0.39036783942285797,
+          "windowdiff": 0.3915864850689845,
+          "f1@0": 0.33325281164975823,
+          "f1@1": 0.4806691781500942,
+          "J": 0.4714424861134501
+        },
+        "\u0394Context v2 (displacement)": {
+          "pk": 0.42340733529174435,
+          "windowdiff": 0.42658136546004927,
+          "f1@0": 0.26659324983752464,
+          "f1@1": 0.41777976052785215,
+          "J": 0.42159295727289015
+        },
+        "\u0394Context v3 (universal)": {
+          "pk": 0.40838219807735676,
+          "windowdiff": 0.4092653543612765,
+          "f1@0": 0.24818875780707841,
+          "f1@1": 0.416931143496029,
+          "J": 0.41990327986486087
+        }
+      },
+      "tests": {
+        "\u0394Context v3 (universal) vs Fixed-size chunks [pk]": {
+          "diff": -0.08700780740239654,
+          "ci": [
+            -0.10290697092228168,
+            -0.0711211223116245
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [f1@0]": {
+          "diff": -0.2068938242568687,
+          "ci": [
+            -0.22865727425109442,
+            -0.18480685039901476
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [J]": {
+          "diff": -0.059943008427236065,
+          "ci": [
+            -0.07730225628421883,
+            -0.04261315160392496
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [pk]": {
+          "diff": -0.08423806909222148,
+          "ci": [
+            -0.09659721547613494,
+            -0.07155375178817591
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [f1@0]": {
+          "diff": -0.11136393965760827,
+          "ci": [
+            -0.1276540930318995,
+            -0.09488793487109608
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [J]": {
+          "diff": -0.013562935282693384,
+          "ci": [
+            -0.026474551515999693,
+            -0.0006597854714121376
+          ],
+          "p_holm": 0.12
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [pk]": {
+          "diff": -0.04453696137640788,
+          "ci": [
+            -0.05618485372353273,
+            -0.0324355408897187
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [f1@0]": {
+          "diff": -0.011715354196270225,
+          "ci": [
+            -0.028508737869424892,
+            0.005175025885903745
+          ],
+          "p_holm": 0.3456
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [J]": {
+          "diff": 0.016410803590068832,
+          "ci": [
+            0.0031675375999316805,
+            0.02934277950306638
+          ],
+          "p_holm": 0.08399999999999999
+        },
+        "\u0394Context v3 (universal) vs TextTiling [pk]": {
+          "diff": 0.0180143586544988,
+          "ci": [
+            0.0060759440053731965,
+            0.02984022382383553
+          ],
+          "p_holm": 0.0168
+        },
+        "\u0394Context v3 (universal) vs TextTiling [f1@0]": {
+          "diff": -0.0850640538426798,
+          "ci": [
+            -0.10328284755956511,
+            -0.06695288765517773
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [J]": {
+          "diff": -0.051539206248589306,
+          "ci": [
+            -0.06526475754249761,
+            -0.038173775813203636
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [pk]": {
+          "diff": -0.01502513721438756,
+          "ci": [
+            -0.025878435332500872,
+            -0.0042239979111685245
+          ],
+          "p_holm": 0.0444
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [f1@0]": {
+          "diff": -0.018404492030446227,
+          "ci": [
+            -0.034454008459733655,
+            -0.0025793141337034477
+          ],
+          "p_holm": 0.0992
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [J]": {
+          "diff": -0.0016896774080293318,
+          "ci": [
+            -0.013705687502008963,
+            0.010329305730995964
+          ],
+          "p_holm": 0.7838
+        }
+      }
+    },
+    "TIAGE": {
+      "test_conversations": 100,
+      "test": {
+        "Fixed-size chunks": {
+          "pk": 0.5907655677655678,
+          "windowdiff": 0.656021978021978,
+          "f1@0": 0.2567901542901543,
+          "f1@1": 0.5993927738927739,
+          "J": 0.3330122932622934
+        },
+        "Adjacent-turn threshold": {
+          "pk": 0.47059157509157507,
+          "windowdiff": 0.5826245421245421,
+          "f1@0": 0.3989580142080142,
+          "f1@1": 0.5014707237207238,
+          "J": 0.4641832195582196
+        },
+        "Semantic chunking": {
+          "pk": 0.4152399267399267,
+          "windowdiff": 0.4580146520146521,
+          "f1@0": 0.35400793650793644,
+          "f1@1": 0.4822936507936507,
+          "J": 0.46938400488400495
+        },
+        "TextTiling": {
+          "pk": 0.43915201465201464,
+          "windowdiff": 0.45238461538461544,
+          "f1@0": 0.26699999999999996,
+          "f1@1": 0.4938730158730158,
+          "J": 0.4139239926739927
+        },
+        "\u0394Context v2 (displacement)": {
+          "pk": 0.43838369963369955,
+          "windowdiff": 0.46352106227106227,
+          "f1@0": 0.34548412698412695,
+          "f1@1": 0.49761111111111106,
+          "J": 0.4535502136752136
+        },
+        "\u0394Context v3 (universal)": {
+          "pk": 0.38844688644688646,
+          "windowdiff": 0.4001410256410257,
+          "f1@0": 0.29033333333333333,
+          "f1@1": 0.442984126984127,
+          "J": 0.4509432234432235
+        }
+      },
+      "tests": {
+        "\u0394Context v3 (universal) vs Fixed-size chunks [pk]": {
+          "diff": -0.20231868131868133,
+          "ci": [
+            -0.23760631868131862,
+            -0.16720343406593408
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [f1@0]": {
+          "diff": 0.03354317904317905,
+          "ci": [
+            -0.02826531246531245,
+            0.09573539099789098
+          ],
+          "p_holm": 1.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [J]": {
+          "diff": 0.11793093018093018,
+          "ci": [
+            0.0743832382894883,
+            0.16107290695415694
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [pk]": {
+          "diff": -0.08214468864468863,
+          "ci": [
+            -0.11866694139194138,
+            -0.04587403846153852
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [f1@0]": {
+          "diff": -0.10862468087468086,
+          "ci": [
+            -0.15468548881673883,
+            -0.061562658868908875
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [J]": {
+          "diff": -0.013239996114996109,
+          "ci": [
+            -0.04887363400488398,
+            0.02365077179764681
+          ],
+          "p_holm": 1.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [pk]": {
+          "diff": -0.0267930402930403,
+          "ci": [
+            -0.06512550366300367,
+            0.0124352106227106
+          ],
+          "p_holm": 1.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [f1@0]": {
+          "diff": -0.06367460317460318,
+          "ci": [
+            -0.12002380952380953,
+            -0.00698412698412699
+          ],
+          "p_holm": 0.2412
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [J]": {
+          "diff": -0.01844078144078144,
+          "ci": [
+            -0.061233318070818075,
+            0.025438965201465203
+          ],
+          "p_holm": 1.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [pk]": {
+          "diff": -0.05070512820512821,
+          "ci": [
+            -0.08734326923076922,
+            -0.013929853479853496
+          ],
+          "p_holm": 0.0726
+        },
+        "\u0394Context v3 (universal) vs TextTiling [f1@0]": {
+          "diff": 0.02333333333333333,
+          "ci": [
+            -0.036541865079365084,
+            0.08334960317460317
+          ],
+          "p_holm": 1.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [J]": {
+          "diff": 0.037019230769230776,
+          "ci": [
+            -0.006747580891330886,
+            0.08143938492063492
+          ],
+          "p_holm": 0.6944
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [pk]": {
+          "diff": -0.04993681318681318,
+          "ci": [
+            -0.08797335164835164,
+            -0.012378434065934077
+          ],
+          "p_holm": 0.092
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [f1@0]": {
+          "diff": -0.05515079365079365,
+          "ci": [
+            -0.11227896825396826,
+            0.00032539682539681783
+          ],
+          "p_holm": 0.4096
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [J]": {
+          "diff": -0.0026069902319902347,
+          "ci": [
+            -0.04574069368131869,
+            0.039649423840048804
+          ],
+          "p_holm": 1.0
+        }
+      }
+    },
+    "DialSeg711": {
+      "test_conversations": 711,
+      "test": {
+        "Fixed-size chunks": {
+          "pk": 0.5760294664815243,
+          "windowdiff": 0.7667529760434451,
+          "f1@0": 0.4572279464351861,
+          "f1@1": 0.48671418327958943,
+          "J": 0.44059923997683087
+        },
+        "Adjacent-turn threshold": {
+          "pk": 0.41312343546084584,
+          "windowdiff": 0.5556368859490002,
+          "f1@0": 0.4857668379398082,
+          "f1@1": 0.5138790102522521,
+          "J": 0.5363217012394811
+        },
+        "Semantic chunking": {
+          "pk": 0.35282571896029286,
+          "windowdiff": 0.3871500649353138,
+          "f1@0": 0.46146191673617837,
+          "f1@1": 0.5138138467252391,
+          "J": 0.5543180988879427
+        },
+        "TextTiling": {
+          "pk": 0.29542585909140223,
+          "windowdiff": 0.3221734075512049,
+          "f1@0": 0.5827393539418856,
+          "f1@1": 0.6496553103093187,
+          "J": 0.6436567474252416
+        },
+        "\u0394Context v2 (displacement)": {
+          "pk": 0.32053474869229326,
+          "windowdiff": 0.3520159421549534,
+          "f1@0": 0.5289971163388885,
+          "f1@1": 0.5983788597712648,
+          "J": 0.6042311838232975
+        },
+        "\u0394Context v3 (universal)": {
+          "pk": 0.2831634739949162,
+          "windowdiff": 0.3087025030060249,
+          "f1@0": 0.5543303001108908,
+          "f1@1": 0.6260704056062706,
+          "J": 0.6355834130579874
+        }
+      },
+      "tests": {
+        "\u0394Context v3 (universal) vs Fixed-size chunks [pk]": {
+          "diff": -0.2928659924866083,
+          "ci": [
+            -0.30415897794542623,
+            -0.2820581963892827
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [f1@0]": {
+          "diff": 0.0971023536757047,
+          "ci": [
+            0.08015428628866794,
+            0.1137514242288838
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Fixed-size chunks [J]": {
+          "diff": 0.19498417308115648,
+          "ci": [
+            0.18218245309587353,
+            0.2079167104848819
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [pk]": {
+          "diff": -0.12995996146592972,
+          "ci": [
+            -0.14152905960493314,
+            -0.1185228849037732
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [f1@0]": {
+          "diff": 0.06856346217108268,
+          "ci": [
+            0.05297007028791707,
+            0.0839710409702775
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Adjacent-turn threshold [J]": {
+          "diff": 0.09926171181850618,
+          "ci": [
+            0.0864074034083557,
+            0.11216658203780996
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [pk]": {
+          "diff": -0.06966224496537668,
+          "ci": [
+            -0.08228877549931171,
+            -0.05695189522600661
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [f1@0]": {
+          "diff": 0.09286838337471248,
+          "ci": [
+            0.07350089217705252,
+            0.1117003618744125
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs Semantic chunking [J]": {
+          "diff": 0.08126531417004458,
+          "ci": [
+            0.06587492021976964,
+            0.0963044462938808
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs TextTiling [pk]": {
+          "diff": -0.01226238509648609,
+          "ci": [
+            -0.02412671916281192,
+            -0.00010005477745621518
+          ],
+          "p_holm": 0.0972
+        },
+        "\u0394Context v3 (universal) vs TextTiling [f1@0]": {
+          "diff": -0.028409053830994745,
+          "ci": [
+            -0.04619993325162101,
+            -0.01057755642934967
+          ],
+          "p_holm": 0.0104
+        },
+        "\u0394Context v3 (universal) vs TextTiling [J]": {
+          "diff": -0.008073334367254327,
+          "ci": [
+            -0.02229072219105575,
+            0.006273669854403003
+          ],
+          "p_holm": 0.2698
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [pk]": {
+          "diff": -0.03737127469737715,
+          "ci": [
+            -0.048571336613008734,
+            -0.026507387567179807
+          ],
+          "p_holm": 0.0
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [f1@0]": {
+          "diff": 0.025333183772002343,
+          "ci": [
+            0.008777690312500447,
+            0.04173493466214985
+          ],
+          "p_holm": 0.0104
+        },
+        "\u0394Context v3 (universal) vs \u0394Context v2 (displacement) [J]": {
+          "diff": 0.03135222923468975,
+          "ci": [
+            0.018340475801065705,
+            0.04447366365949906
+          ],
+          "p_holm": 0.0
+        }
+      }
+    }
+  }
+}
