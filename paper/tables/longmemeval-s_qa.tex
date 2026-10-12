@@ -2,11 +2,13 @@
 \toprule
 Method & F1 & EM & Evid. rec. & Tokens & Abstain \\
 \midrule
-Sliding window & 0.019 & 0.006 & 0.009 & 1809 & 1.000 \\
-RAG, full scan (turn-level) & 0.311 & 0.217 & 0.774 & 2037 & 0.933 \\
+Sliding window & 0.019$^{***}$ & 0.006$^{***}$ & 0.009$^{***}$ & 1809 & 1.000 \\
+RAG, full scan (turn-level) & 0.311 & 0.217 & 0.774$^{***}$ & 2037 & 0.933 \\
+\textbf{$\Delta$Context topic store (ours)} & 0.302 & 0.206 & 0.733 & 2038 & 1.000 \\
 Session oracle topic store & 0.298 & 0.202 & 0.734 & 2037 & 1.000 \\
 Semantic chunking topic store & 0.284 & 0.194 & 0.717 & 2037 & 0.933 \\
-Fixed-size chunks (10 turns) topic store & 0.263 & 0.187 & 0.601 & 2039 & 1.000 \\
+TextTiling topic store & 0.296 & 0.200 & 0.732 & 2037 & 0.967 \\
+Fixed-size chunks (10 turns) topic store & 0.263$^{*}$ & 0.187 & 0.601$^{***}$ & 2039 & 1.000 \\
 \midrule
 Evidence sessions only ($\sim$6K tokens) & 0.279 & 0.202 & 1.000 & 5987 & 0.933 \\
 \bottomrule

@@ -1,0 +1,242 @@
+{
+  "LongMemEval-S": {
+    "full v3 (chosen)": {
+      "pk": 0.0580301083515792,
+      "f1@0": 0.9137734094185934,
+      "J": 0.9278716505335072,
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 3,
+        "left_context": 3,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.75,
+        "min_segment_turns": 1
+      }
+    },
+    "left context = whole topic": {
+      "pk": 0.06198018332537023,
+      "f1@0": 0.8860337062805052,
+      "J": 0.9120267614775674,
+      "full_minus_this_J": {
+        "diff": 0.01584488905593963,
+        "ci": [
+          0.012765189094519626,
+          0.01889264108779419
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 3,
+        "left_context": null,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.7,
+        "min_segment_turns": 1
+      }
+    },
+    "threshold = zscore": {
+      "pk": 0.07288308367152893,
+      "f1@0": 0.8959581023663118,
+      "J": 0.9115375093473915,
+      "full_minus_this_J": {
+        "diff": 0.016334141186115664,
+        "ci": [
+          0.014041981622632014,
+          0.018646777502018187
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 3,
+        "left_context": 3,
+        "threshold_mode": "zscore",
+        "change_threshold": 1.5,
+        "min_segment_turns": 1
+      }
+    },
+    "look-ahead = 1": {
+      "pk": 0.09318531356645977,
+      "f1@0": 0.8462362288299546,
+      "J": 0.8765254576317475,
+      "full_minus_this_J": {
+        "diff": 0.05134619290175964,
+        "ci": [
+          0.047594481738835084,
+          0.05509162081886965
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 1,
+        "left_context": 3,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.8,
+        "min_segment_turns": 1
+      }
+    },
+    "look-ahead = 2": {
+      "pk": 0.06303363666327509,
+      "f1@0": 0.9044342094272393,
+      "J": 0.9207002863819821,
+      "full_minus_this_J": {
+        "diff": 0.007171364151525043,
+        "ci": [
+          0.004806260375093338,
+          0.009440264083693887
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 2,
+        "left_context": 3,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.75,
+        "min_segment_turns": 1
+      }
+    },
+    "v2 detector (no look-ahead)": {
+      "pk": 0.10224935753530941,
+      "f1@0": 0.8251046110045848,
+      "J": 0.8614276267346377,
+      "full_minus_this_J": {
+        "diff": 0.0664440237988694,
+        "ci": [
+          0.061953499566765005,
+          0.07088495435275362
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "accumulator",
+        "accumulator": "displacement",
+        "change_threshold": 0.75,
+        "window": 3,
+        "min_snapshot_gap": 1,
+        "localize_boundaries": true
+      }
+    }
+  },
+  "SuperDialseg": {
+    "full v3 (chosen)": {
+      "pk": 0.4129658017034237,
+      "f1@0": 0.50153929690526,
+      "J": 0.5442867476009182,
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 1,
+        "left_context": null,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.4,
+        "min_segment_turns": 2
+      }
+    },
+    "left context = last 3 turns": {
+      "pk": 0.4068614085413295,
+      "f1@0": 0.5123697133081956,
+      "J": 0.552754152383433,
+      "full_minus_this_J": {
+        "diff": -0.008467404782514794,
+        "ci": [
+          -0.01320016289403357,
+          -0.0038776780568007562
+        ],
+        "p": 0.0004
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 1,
+        "left_context": 3,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.4,
+        "min_segment_turns": 2
+      }
+    },
+    "threshold = zscore": {
+      "pk": 0.4092409723453374,
+      "f1@0": 0.469638480688099,
+      "J": 0.5301987541713807,
+      "full_minus_this_J": {
+        "diff": 0.014087993429537397,
+        "ci": [
+          0.007920319984823654,
+          0.020584882688185747
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 1,
+        "left_context": null,
+        "threshold_mode": "zscore",
+        "change_threshold": 0.0,
+        "min_segment_turns": 2
+      }
+    },
+    "look-ahead = 2": {
+      "pk": 0.42554504372988056,
+      "f1@0": 0.38466860111898277,
+      "J": 0.47956177869455113,
+      "full_minus_this_J": {
+        "diff": 0.06472496890636706,
+        "ci": [
+          0.051863216107794825,
+          0.07749709009892493
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 2,
+        "left_context": null,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.3,
+        "min_segment_turns": 2
+      }
+    },
+    "look-ahead = 3": {
+      "pk": 0.4188960961311066,
+      "f1@0": 0.38541796202101547,
+      "J": 0.48326093294495437,
+      "full_minus_this_J": {
+        "diff": 0.061025814655963774,
+        "ci": [
+          0.04805650690831146,
+          0.0739667334129582
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "lookahead",
+        "lookahead": 3,
+        "left_context": null,
+        "threshold_mode": "absolute",
+        "change_threshold": 0.2,
+        "min_segment_turns": 2
+      }
+    },
+    "v2 detector (no look-ahead)": {
+      "pk": 0.4593835121306584,
+      "f1@0": 0.4366552935165418,
+      "J": 0.4886358906929417,
+      "full_minus_this_J": {
+        "diff": 0.05565085690797647,
+        "ci": [
+          0.04497351939518059,
+          0.06660617272095534
+        ],
+        "p": 0.0
+      },
+      "config": {
+        "detector": "accumulator",
+        "accumulator": "displacement",
+        "change_threshold": 0.35,
+        "window": 2,
+        "min_snapshot_gap": 2,
+        "localize_boundaries": true
+      }
+    }
+  }
+}

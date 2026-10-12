@@ -2,39 +2,50 @@
   "step": 1,
   "histories": 250,
   "parameters": {
-    "fixed": 5,
-    "adjacent": 0.85,
+    "source": "paper/results/segbench.json (LongMemEval-S dev choices); fixed chunks use 10 turns, the stronger retrieval baseline",
+    "delta_config": {
+      "detector": "lookahead",
+      "lookahead": 3,
+      "left_context": 3,
+      "threshold_mode": "absolute",
+      "change_threshold": 0.75,
+      "min_segment_turns": 1
+    },
+    "adjacent": 0.8,
     "semantic_chunker": 90,
-    "texttiling": 5,
-    "delta_context": 0.75
+    "texttiling": {
+      "block": 6,
+      "cutoff_std": 0.0
+    },
+    "fixed": 10
   },
   "results": {
     "\u0394Context (online)": {
       "removed_boundaries_per_100_turns": 0.0,
       "late_cuts_per_100_turns": 0.0,
-      "segments_reindexed_per_new_turn": 1.0911429711224547,
-      "median_detection_delay_turns": 3.0,
-      "mean_detection_delay_turns": 2.567676568955341,
-      "final_f1@1": 0.8376588009121174,
-      "final_pk": 0.10227446213781985
+      "segments_reindexed_per_new_turn": 1.0953113678365858,
+      "median_detection_delay_turns": 4.0,
+      "mean_detection_delay_turns": 4.000092997303078,
+      "final_f1@1": 0.9174797693739135,
+      "final_pk": 0.0580301083515792
     },
     "Adjacent threshold (online)": {
       "removed_boundaries_per_100_turns": 0.0,
       "late_cuts_per_100_turns": 0.0,
       "segments_reindexed_per_new_turn": 1.0,
       "median_detection_delay_turns": 1.0,
-      "mean_detection_delay_turns": 0.964524832617168,
-      "final_f1@1": 0.7754169508161353,
-      "final_pk": 0.12506277578258476
+      "mean_detection_delay_turns": 0.9532115171650055,
+      "final_f1@1": 0.758068611029553,
+      "final_pk": 0.1223008637457603
     },
     "Fixed-size chunks (online)": {
       "removed_boundaries_per_100_turns": 0.0,
       "late_cuts_per_100_turns": 0.0,
       "segments_reindexed_per_new_turn": 1.0,
       "median_detection_delay_turns": 1.0,
-      "mean_detection_delay_turns": 1.0060931379660525,
-      "final_f1@1": 0.3734856169367057,
-      "final_pk": 0.532017771635835
+      "mean_detection_delay_turns": 1.0021039975954313,
+      "final_f1@1": 0.27286469409334124,
+      "final_pk": 0.4996399600835199
     },
     "Semantic chunking (re-run)": {
       "removed_boundaries_per_100_turns": 9.33221751882937,
@@ -46,13 +57,13 @@
       "final_pk": 0.14109420648676707
     },
     "TextTiling (re-run)": {
-      "removed_boundaries_per_100_turns": 24.360776411898048,
-      "late_cuts_per_100_turns": 2.0003412442415036,
-      "segments_reindexed_per_new_turn": 1.4197624339528938,
-      "median_detection_delay_turns": 4.0,
-      "mean_detection_delay_turns": 4.2388059701492535,
-      "final_f1@1": 0.7714287938727462,
-      "final_pk": 0.21481462449678432
+      "removed_boundaries_per_100_turns": 13.999138764533349,
+      "late_cuts_per_100_turns": 3.0151366195695446,
+      "segments_reindexed_per_new_turn": 1.2601584316407364,
+      "median_detection_delay_turns": 5.0,
+      "mean_detection_delay_turns": 5.711456732073424,
+      "final_f1@1": 0.8988177328399394,
+      "final_pk": 0.0686434374615611
     }
   }
 }
