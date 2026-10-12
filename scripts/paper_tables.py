@@ -38,6 +38,13 @@ OURS_PREFIX = "ΔContext"
 
 # -- run loading ----------------------------------------------------------------
 
+CURRENT = {}
+try:
+    CURRENT = json.loads(Path("paper/results/params_v3_lme.json").read_text(encoding="utf-8"))
+except FileNotFoundError:
+    pass
+
+
 def method_label(config: dict) -> str:
     p, budget = config["policy"], config["budget"]
     name, k = p["name"], p.get("topic_first_k", 0)
@@ -53,11 +60,22 @@ def method_label(config: dict) -> str:
             label = SOURCE_LABELS[source]
             if source == "fixed":
                 label += f" ({p.get('segment_turns', 20)} turns)"
+            elif source == "texttiling":
+                tt = CURRENT.get("texttiling", {})
+                cur = (float(tt.get("block", -1)), float(tt.get("cutoff_std", -1)))
+                got = (float(p.get("segment_param") or 3), float(p.get("texttiling_cutoff", 0.5)))
+                if got != cur:
+                    label += f" [block {got[0]:.0f}, cutoff {got[1]}]"
+            elif source == "adjacent":
+                if float(p.get("segment_param") or 0) != float(CURRENT.get("adjacent", -1)):
+                    label += f" [theta {p.get('segment_param')}]"
             return f"{label} store (top-{k})"
         if p.get("segment_prior_weight"):
             return "RAG + chunk prior"
         return "RAG, turn-level" if p.get("retrieval_fraction") == 1.0 else "RAG + recency tail (50/50)"
     if name == "delta_context":
+        if p.get("detector") == "lookahead":
+            return f"{OURS_PREFIX} store (top-{k})" if k else f"{OURS_PREFIX} v3 turn ranking"
         suffix = []
         if p.get("accumulator", "sum") == "sum" and k:
             suffix.append("path-length detector")
@@ -65,7 +83,7 @@ def method_label(config: dict) -> str:
             suffix.append("no localization")
         tag = f" ({', '.join(suffix)})" if suffix else ""
         if k:
-            return f"{OURS_PREFIX} store (top-{k}){tag}"
+            return f"{OURS_PREFIX} v2 store (top-{k}){tag}"
         if p.get("segment_prior_weight"):
             return f"{OURS_PREFIX} segment prior"
         return f"{OURS_PREFIX} turn ranking (v1.2)"
@@ -216,8 +234,9 @@ def tex_label(method: str) -> str:
     """Paper-facing method names for the LaTeX tables."""
     names = {
         f"{OURS_PREFIX} store (top-3)": r"$\Delta$Context topic store (ours)",
-        f"{OURS_PREFIX} store (top-3) (no localization)": r"\quad w/o boundary localisation",
-        f"{OURS_PREFIX} store (top-3) (path-length detector)": r"\quad path-length detector",
+        f"{OURS_PREFIX} v2 store (top-3)": r"\quad v2: displacement detector",
+        f"{OURS_PREFIX} v2 store (top-3) (no localization)": r"\quad v2 w/o boundary localisation",
+        f"{OURS_PREFIX} v2 store (top-3) (path-length detector)": r"\quad v1: path-length detector",
         f"{OURS_PREFIX} turn ranking (v1.2)": r"$\Delta$Context v1.2 (turn ranking, 50/50)",
         "RAG, turn-level": "RAG, full scan (turn-level)",
         "Evidence sessions only (oracle)": r"Evidence sessions only ($\sim$6K tokens)",
@@ -315,8 +334,9 @@ def main() -> None:
     store_rows = [ours_store] + [f"{label} store (top-3)" for label in SOURCE_LABELS.values()
                                  if label != "Fixed-size chunks"] + [
         f"Fixed-size chunks ({n} turns) store (top-3)" for n in (5, 10)]
-    ablation_rows = [ours_store, f"{OURS_PREFIX} store (top-3) (no localization)",
-                     f"{OURS_PREFIX} store (top-3) (path-length detector)"]
+    ablation_rows = [ours_store, f"{OURS_PREFIX} v2 store (top-3)",
+                     f"{OURS_PREFIX} v2 store (top-3) (no localization)",
+                     f"{OURS_PREFIX} v2 store (top-3) (path-length detector)"]
     topic_sets = [("LongMemEval-S topic store", "experiments/lme_topic", 2048)]
     qa_sets = [("LongMemEval-S end-to-end QA (Qwen2.5-3B)", "experiments/lme_llm", 2048)]
     if args.include_locomo:
@@ -385,6 +405,39 @@ def main() -> None:
         tex += [r"\bottomrule", r"\end{tabular}"]
         (args.out / "tables" / f"segmentation_{seg.stem.removeprefix('seg_')}.tex").write_text(
             "\n".join(tex) + "\n", encoding="utf-8")
+        sections.append("")
+
+    segbench_path = Path("paper/results/segbench.json")
+    if segbench_path.is_file():
+        bench = json.loads(segbench_path.read_text(encoding="utf-8"))
+        names = list(bench["datasets"])
+        order = ["ΔContext v3 (delayed commitment)", "ΔContext v3 (universal)", "TextTiling",
+                 "Semantic chunking", "Adjacent-turn threshold", "Fixed-size chunks",
+                 "ΔContext v2 (displacement)"]
+        online = {"ΔContext v3 (delayed commitment)": "yes", "ΔContext v3 (universal)": "yes",
+                  "TextTiling": "no", "Semantic chunking": "no", "Adjacent-turn threshold": "yes",
+                  "Fixed-size chunks": "yes", "ΔContext v2 (displacement)": "yes"}
+        tex_names = {"ΔContext v3 (delayed commitment)": r"$\Delta$Context v3 (ours)",
+                     "ΔContext v3 (universal)": r"$\Delta$Context v3, one setting (ours)",
+                     "ΔContext v2 (displacement)": r"$\Delta$Context v2"}
+        sections += ["### Topic segmentation on four datasets (dev-tuned, one-shot test)", "",
+                     "Cells: Pk / exact-boundary F1 (J). Tuning objective J = ((1-Pk)+F1)/2.", "",
+                     "| Method | Online | " + " | ".join(names) + " |", "|" + "---|" * (len(names) + 2)]
+        best = {n: max(bench["datasets"][n]["test"][m]["J"] for m in order) for n in names}
+        tex = [r"\begin{tabular}{ll" + "c" * len(names) + "}", r"\toprule",
+               "Method & Online & " + " & ".join(names) + r" \\", r"\midrule"]
+        for m in order:
+            cells, tcells = [], []
+            for n in names:
+                v = bench["datasets"][n]["test"][m]
+                cell = f"{v['pk']:.3f} / {v['f1@0']:.3f} ({v['J']:.3f})"
+                cells.append(cell)
+                tcell = f"{v['pk']:.3f} / {v['f1@0']:.3f}"
+                tcells.append(r"\textbf{" + tcell + "}" if v["J"] == best[n] else tcell)
+            sections.append(f"| {m} | {online[m]} | " + " | ".join(cells) + " |")
+            tex.append(" & ".join([tex_names.get(m, m), online[m]] + tcells) + r" \\")
+        tex += [r"\bottomrule", r"\end{tabular}"]
+        (args.out / "tables" / "segbench.tex").write_text("\n".join(tex) + "\n", encoding="utf-8")
         sections.append("")
 
     scaling_path = Path("paper/results/scaling_lme.json")

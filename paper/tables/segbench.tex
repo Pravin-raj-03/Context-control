@@ -1,0 +1,13 @@
+\begin{tabular}{llcccc}
+\toprule
+Method & Online & LongMemEval-S & SuperDialseg & TIAGE & DialSeg711 \\
+\midrule
+$\Delta$Context v3 (ours) & yes & \textbf{0.058 / 0.914} & 0.413 / 0.502 & 0.427 / 0.365 & 0.490 / 0.497 \\
+$\Delta$Context v3, one setting (ours) & yes & 0.094 / 0.848 & 0.408 / 0.248 & 0.388 / 0.290 & \textbf{0.283 / 0.554} \\
+TextTiling & no & 0.069 / 0.894 & \textbf{0.385 / 0.493} & 0.442 / 0.374 & 0.401 / 0.560 \\
+Semantic chunking & no & 0.141 / 0.756 & 0.498 / 0.399 & \textbf{0.441 / 0.397} & 0.464 / 0.448 \\
+Adjacent-turn threshold & yes & 0.122 / 0.754 & 0.511 / 0.408 & 0.471 / 0.399 & 0.499 / 0.417 \\
+Fixed-size chunks & yes & 0.532 / 0.170 & 0.495 / 0.455 & 0.544 / 0.260 & 0.576 / 0.457 \\
+$\Delta$Context v2 & yes & 0.102 / 0.825 & 0.459 / 0.437 & 0.454 / 0.385 & 0.522 / 0.455 \\
+\bottomrule
+\end{tabular}

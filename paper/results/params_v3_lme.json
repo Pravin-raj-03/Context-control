@@ -1,0 +1,18 @@
+{
+  "source": "paper/results/segbench.json (LongMemEval-S dev choices); fixed chunks use 10 turns, the stronger retrieval baseline",
+  "delta_config": {
+    "detector": "lookahead",
+    "lookahead": 3,
+    "left_context": 3,
+    "threshold_mode": "absolute",
+    "change_threshold": 0.75,
+    "min_segment_turns": 1
+  },
+  "adjacent": 0.8,
+  "semantic_chunker": 90,
+  "texttiling": {
+    "block": 6,
+    "cutoff_std": 0.0
+  },
+  "fixed": 10
+}

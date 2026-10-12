@@ -45,7 +45,8 @@ from contextbench.context.state import SentenceTransformerEmbedder
 from contextbench.core.config_schema import DatasetConfig, PolicyConfig
 from contextbench.datasets.longmemeval import LongMemEvalDataset
 from contextbench.evaluation.segmentation import boundary_prf, pk
-from scripts.segmentation_report import _WordCounter, delta_boundaries, dev_test_split
+from scripts.segmentation_report import (_WordCounter, delta_boundaries, delta_policy_from_params,
+                                         dev_test_split, texttiling_kwargs)
 
 HORIZON = 5
 
@@ -65,9 +66,11 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--step", type=int, default=10)
     parser.add_argument("--histories", type=int, default=250)
+    parser.add_argument("--params", default="paper/results/seg_lme.json")
     args = parser.parse_args()
 
-    params = json.loads(Path("paper/results/seg_lme.json").read_text())["chosen_parameters"]
+    loaded = json.loads(Path(args.params).read_text())
+    params = loaded.get("chosen_parameters", loaded)
     config = DatasetConfig(**yaml.safe_load(Path("configs/dataset/longmemeval_s.yaml").read_text()))
     samples = list(LongMemEvalDataset(config))
     test = dev_test_split(samples)[1][: args.histories]
@@ -75,17 +78,14 @@ def main() -> None:
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path="data/cache/longmemeval_s_minilm.npz")
     import contextbench.policies.delta_context as dc
     dc.SentenceTransformerEmbedder = lambda **_: embedder
-    base = yaml.safe_load(Path("configs/policy/delta_context.yaml").read_text())
-    policy = dc.DeltaContextPolicy(PolicyConfig(**{**base, "accumulator": "displacement",
-                                                   "change_threshold": params["delta_context"],
-                                                   "localize_boundaries": True}), _WordCounter())
+    policy = delta_policy_from_params(params)
 
     methods = {
         "ΔContext (online)": None,
         "Adjacent threshold (online)": lambda e: segmenters.adjacent_threshold_boundaries(e, params["adjacent"]),
         "Fixed-size chunks (online)": lambda e: segmenters.fixed_boundaries(len(e), int(params["fixed"])),
         "Semantic chunking (re-run)": lambda e: segmenters.semantic_chunker_boundaries(e, params["semantic_chunker"]),
-        "TextTiling (re-run)": lambda e: segmenters.texttiling_boundaries(e, int(params["texttiling"])),
+        "TextTiling (re-run)": lambda e: segmenters.texttiling_boundaries(e, **texttiling_kwargs(params)),
     }
     stats = {m: {"removed": 0, "late": 0, "turns": 0, "reindexed": 0, "steps_turns": 0,
                  "delays": [], "f1": [], "pk": []} for m in methods}

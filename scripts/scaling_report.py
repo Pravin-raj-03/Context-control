@@ -40,7 +40,8 @@ from contextbench.core.types import Message
 from contextbench.datasets.base import DATASET_REGISTRY
 import contextbench.datasets.locomo  # noqa: F401  (registration)
 import contextbench.datasets.longmemeval  # noqa: F401  (registration)
-from scripts.segmentation_report import _WordCounter, delta_boundaries, dev_test_split
+from scripts.segmentation_report import (_WordCounter, delta_boundaries, delta_policy_from_params,
+                                         dev_test_split, texttiling_kwargs)
 
 
 def _mcnemar(b: int, c: int) -> float:
@@ -79,7 +80,8 @@ def main() -> None:
     parser.add_argument("--params", type=Path, default=Path("paper/results/seg_lme.json"))
     args = parser.parse_args()
 
-    params = json.loads(args.params.read_text())["chosen_parameters"]
+    loaded = json.loads(args.params.read_text())
+    params = loaded.get("chosen_parameters", loaded)
     config = DatasetConfig(**yaml.safe_load(args.dataset.read_text()))
     samples = list(DATASET_REGISTRY.create(config.name, config))
     _, test = dev_test_split(samples)
@@ -90,10 +92,7 @@ def main() -> None:
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path=args.cache or None)
     import contextbench.policies.delta_context as dc
     dc.SentenceTransformerEmbedder = lambda **_: embedder
-    base = yaml.safe_load(Path("configs/policy/delta_context.yaml").read_text())
-    policy = dc.DeltaContextPolicy(PolicyConfig(**{**base, "accumulator": "displacement",
-                                                   "change_threshold": params["delta_context"],
-                                                   "localize_boundaries": True}), _WordCounter())
+    policy = delta_policy_from_params(params)
 
     results: dict[str, dict[int, dict[str, float]]] = {}
     for d in args.distractors:
@@ -121,7 +120,7 @@ def main() -> None:
                 "ΔContext": delta_boundaries(policy, messages),
                 "Fixed-size chunks": segmenters.fixed_boundaries(n, int(params["fixed"])),
                 "Semantic chunking": segmenters.semantic_chunker_boundaries(matrix, params["semantic_chunker"]),
-                "TextTiling": segmenters.texttiling_boundaries(matrix, int(params["texttiling"])),
+                "TextTiling": segmenters.texttiling_boundaries(matrix, **texttiling_kwargs(params)),
                 "Adjacent threshold": segmenters.adjacent_threshold_boundaries(matrix, params["adjacent"]),
                 "Session oracle": [i for i in range(n - 1) if messages[i].session_id != messages[i + 1].session_id],
             }

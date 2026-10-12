@@ -82,6 +82,28 @@ def dev_test_split(samples, seed: int = 0, dev_fraction: float = 0.5):
     return [samples[i] for i in dev_idx], [samples[i] for i in test_idx]
 
 
+def delta_policy_from_params(params: dict, counter=None):
+    """ΔContext policy for a parameter file: a full ``delta_config`` (v3) or the
+    legacy displacement threshold ``delta_context`` (v2)."""
+    import contextbench.policies.delta_context as dc
+
+    base = yaml.safe_load(Path("configs/policy/delta_context.yaml").read_text(encoding="utf-8"))
+    if "delta_config" in params:
+        cfg = {**base, **params["delta_config"]}
+    else:
+        cfg = {**base, "accumulator": "displacement", "change_threshold": params["delta_context"],
+               "localize_boundaries": True}
+    return dc.DeltaContextPolicy(PolicyConfig(**cfg), counter or _WordCounter())
+
+
+def texttiling_kwargs(params: dict) -> dict:
+    """TextTiling arguments from a parameter file (block only, or block + cutoff)."""
+    tt = params["texttiling"]
+    if isinstance(tt, dict):
+        return {"block": int(tt["block"]), "cutoff_std": float(tt.get("cutoff_std", 0.5))}
+    return {"block": int(tt)}
+
+
 def delta_boundaries(policy, messages) -> list[int]:
     policy.reset()
     for m in messages:

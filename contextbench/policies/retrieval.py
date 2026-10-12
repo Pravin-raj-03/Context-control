@@ -44,6 +44,8 @@ class RetrievalConfig(BaseModel):
     # distance threshold for "adjacent", percentile for "semantic_chunker",
     # block size for "texttiling".
     segment_param: float | None = None
+    # TextTiling depth cutoff (mean - texttiling_cutoff * std; Hearst: 0.5).
+    texttiling_cutoff: float = 0.5
     # Topic-first control: the same two-stage search ΔContext's topic store
     # uses (segments first, then turns inside the best `topic_first_k`), over
     # fixed-size or session segments. 0 disables it.
@@ -203,7 +205,8 @@ class RetrievalPolicy(ContextPolicy):
             return segmenters.adjacent_threshold_boundaries(embeddings, float(param))
         if source == "semantic_chunker":
             return segmenters.semantic_chunker_boundaries(embeddings, float(param))
-        return segmenters.texttiling_boundaries(embeddings, block=int(param or 3))
+        return segmenters.texttiling_boundaries(embeddings, block=int(param or 3),
+                                                cutoff_std=self._cfg.texttiling_cutoff)
 
     def _count_message(self, message: Message) -> int:
         cached = self._count_cache.get(message)

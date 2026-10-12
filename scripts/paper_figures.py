@@ -205,17 +205,15 @@ def segmentation_example(out: Path, params: dict, index: int = 0) -> None:
     embedder = SentenceTransformerEmbedder(device="cpu", cache_path="data/cache/longmemeval_s_minilm.npz")
     e = embedder.embed_batch([f"{m.speaker or m.role}: {m.content}" for m in sample.messages])
     dc.SentenceTransformerEmbedder = lambda **_: embedder
-    base = yaml.safe_load(Path("configs/policy/delta_context.yaml").read_text())
-    policy = dc.DeltaContextPolicy(PolicyConfig(**{**base, "accumulator": "displacement",
-                                                   "change_threshold": params["delta_context"],
-                                                   "localize_boundaries": True}), _WordCounter())
+    from scripts.segmentation_report import delta_policy_from_params, texttiling_kwargs
+    policy = delta_policy_from_params(params)
     n = len(sample.messages)
     rows = [
         ("True sessions", [i for i in range(n - 1)
                            if sample.messages[i].session_id != sample.messages[i + 1].session_id], TEXT),
         ("ΔContext (ours)", delta_boundaries(policy, sample.messages), SERIES[0][2]),
         ("Semantic chunking", segmenters.semantic_chunker_boundaries(e, params["semantic_chunker"]), SERIES[2][2]),
-        ("TextTiling", segmenters.texttiling_boundaries(e, int(params["texttiling"])), SERIES[3][2]),
+        ("TextTiling", segmenters.texttiling_boundaries(e, **texttiling_kwargs(params)), SERIES[3][2]),
         ("Fixed-size chunks", segmenters.fixed_boundaries(n, int(params["fixed"])), SERIES[1][2]),
     ]
     fig, ax = plt.subplots(figsize=(6.2, 2.2))
@@ -240,6 +238,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", type=Path, default=Path("paper/figures"))
     parser.add_argument("--budget", type=int, default=2048)
+    parser.add_argument("--params", default="paper/results/params_v3_lme.json")
     parser.add_argument("--example", action="store_true",
                         help="Also draw the segmentation example (loads LongMemEval; ~2.5 GB RAM).")
     args = parser.parse_args()
@@ -250,7 +249,8 @@ def main() -> None:
     topic_hits(runs, args.budget, args.out)
     scaling(args.out)
     if args.example:
-        params = json.loads(Path("paper/results/seg_lme.json").read_text())["chosen_parameters"]
+        loaded = json.loads(Path(args.params).read_text())
+        params = loaded.get("chosen_parameters", loaded)
         segmentation_example(args.out, params)
     print(f"figures written to {args.out}")
 
