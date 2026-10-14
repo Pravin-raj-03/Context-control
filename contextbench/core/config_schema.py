@@ -60,6 +60,8 @@ class DatasetConfig(BaseModel):
     max_qa_per_sample: int | None = Field(default=None, gt=0)
     qa_categories: list[int] | None = None
     include_image_captions: bool = True
+    # JSON list of sample ids to keep (e.g. a held-out test split); None keeps all.
+    sample_ids_file: str | None = None
 
 
 class ExperimentConfig(BaseModel):

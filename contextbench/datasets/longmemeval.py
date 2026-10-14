@@ -74,6 +74,9 @@ class LongMemEvalDataset(Dataset):
         if config.qa_categories is not None:
             wanted = set(config.qa_categories)
             raw = [r for r in raw if QUESTION_TYPES.get(r["question_type"]) in wanted]
+        if config.sample_ids_file is not None:
+            keep = {str(i) for i in json.loads(Path(config.sample_ids_file).read_text(encoding="utf-8"))}
+            raw = [r for r in raw if str(r["question_id"]) in keep]
         if config.num_samples is not None:
             raw = raw[: config.num_samples]
 

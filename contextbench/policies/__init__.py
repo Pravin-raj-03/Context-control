@@ -8,6 +8,7 @@ from contextbench.policies.sliding_window import SlidingWindowPolicy
 from contextbench.policies.delta_context import DeltaContextPolicy
 from contextbench.policies.summary import SummaryPolicy
 from contextbench.policies.retrieval import RetrievalPolicy
+from contextbench.policies.precomputed import PrecomputedPolicy
 
 __all__ = [
     "ContextPolicy",
@@ -15,5 +16,6 @@ __all__ = [
     "SlidingWindowPolicy",
     "DeltaContextPolicy",
     "SummaryPolicy",
-    "RetrievalPolicy"
+    "RetrievalPolicy",
+    "PrecomputedPolicy",
 ]

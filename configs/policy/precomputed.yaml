@@ -1,0 +1,4 @@
+name: precomputed
+# Turn selections exported by scripts/memory_lab.py --export, and the method to replay.
+selection_file: paper/results/selections_test.json
+method: ""
