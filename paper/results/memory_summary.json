@@ -1,0 +1,649 @@
+{
+ "test": {
+  "SeCom-style | segsess  | comp | bm25": {
+   "2048": {
+    "recall": 0.640506329113924,
+    "all": 0.4430379746835443,
+    "sess": 0.6436708860759495,
+    "single-session-user": 0.9375,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.5666666666666667,
+    "multi-session": 0.3866666666666666,
+    "knowledge-update": 0.6550387596899224,
+    "temporal-reasoning": 0.5671794871794871
+   },
+   "4096": {
+    "recall": 0.7823488045007032,
+    "all": 0.6666666666666666,
+    "sess": 0.7857946554149087,
+    "single-session-user": 0.953125,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.7333333333333333,
+    "multi-session": 0.5645454545454546,
+    "knowledge-update": 0.8643410852713178,
+    "temporal-reasoning": 0.7492307692307693
+   }
+  },
+  "SeCom-style | segsess  | comp | mpnet": {
+   "2048": {
+    "recall": 0.6101969057665261,
+    "all": 0.42616033755274263,
+    "sess": 0.6101969057665261,
+    "single-session-user": 0.59375,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.8,
+    "multi-session": 0.4675757575757576,
+    "knowledge-update": 0.6046511627906976,
+    "temporal-reasoning": 0.536923076923077
+   },
+   "4096": {
+    "recall": 0.7412798874824191,
+    "all": 0.6075949367088608,
+    "sess": 0.7412798874824191,
+    "single-session-user": 0.75,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.8666666666666667,
+    "multi-session": 0.6263636363636365,
+    "knowledge-update": 0.7868217054263564,
+    "temporal-reasoning": 0.6676923076923077
+   }
+  },
+  "SeCom-style | segsess  | comp | hybrid_minilm": {
+   "2048": {
+    "recall": 0.6687763713080169,
+    "all": 0.4936708860759494,
+    "sess": 0.6710970464135022,
+    "single-session-user": 0.90625,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.8333333333333334,
+    "multi-session": 0.45090909090909087,
+    "knowledge-update": 0.6550387596899224,
+    "temporal-reasoning": 0.5697435897435897
+   },
+   "4096": {
+    "recall": 0.818987341772152,
+    "all": 0.7257383966244726,
+    "sess": 0.8219409282700423,
+    "single-session-user": 0.9375,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.8888888888888888,
+    "multi-session": 0.6430303030303031,
+    "knowledge-update": 0.8643410852713178,
+    "temporal-reasoning": 0.7882051282051282
+   }
+  },
+  "SeCom-style | exchange | raw  | hybrid_minilm": {
+   "2048": {
+    "recall": 0.8136427566807314,
+    "all": 0.70042194092827,
+    "sess": 0.8202531645569621,
+    "single-session-user": 1.0,
+    "single-session-assistant": 0.9629629629629629,
+    "single-session-preference": 0.7444444444444444,
+    "multi-session": 0.6448484848484849,
+    "knowledge-update": 0.8992248062015503,
+    "temporal-reasoning": 0.762051282051282
+   },
+   "4096": {
+    "recall": 0.8912798874824192,
+    "all": 0.8143459915611815,
+    "sess": 0.899226441631505,
+    "single-session-user": 1.0,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.7777777777777778,
+    "multi-session": 0.7715151515151516,
+    "knowledge-update": 0.9767441860465116,
+    "temporal-reasoning": 0.8635897435897437
+   }
+  },
+  "SeCom-style | turn     | raw  | minilm": {
+   "2048": {
+    "recall": 0.7731364275668073,
+    "all": 0.6582278481012658,
+    "sess": 0.781504922644163,
+    "single-session-user": 0.859375,
+    "single-session-assistant": 0.9629629629629629,
+    "single-session-preference": 0.7444444444444444,
+    "multi-session": 0.6878787878787879,
+    "knowledge-update": 0.8759689922480619,
+    "temporal-reasoning": 0.6625641025641025
+   },
+   "4096": {
+    "recall": 0.8798171589310829,
+    "all": 0.7974683544303798,
+    "sess": 0.8876230661040788,
+    "single-session-user": 0.953125,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.8777777777777778,
+    "multi-session": 0.8257575757575757,
+    "knowledge-update": 0.9534883720930233,
+    "temporal-reasoning": 0.7912820512820513
+   }
+  },
+  "SeCom-style | turn     | raw  | hybrid_minilm": {
+   "2048": {
+    "recall": 0.8586497890295358,
+    "all": 0.7848101265822784,
+    "sess": 0.8667369901547117,
+    "single-session-user": 0.921875,
+    "single-session-assistant": 0.8888888888888888,
+    "single-session-preference": 0.6777777777777777,
+    "multi-session": 0.7315151515151516,
+    "knowledge-update": 0.9767441860465116,
+    "temporal-reasoning": 0.8861538461538462
+   },
+   "4096": {
+    "recall": 0.9119549929676511,
+    "all": 0.8481012658227848,
+    "sess": 0.9217299578059073,
+    "single-session-user": 0.953125,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.8111111111111111,
+    "multi-session": 0.8151515151515151,
+    "knowledge-update": 0.9767441860465116,
+    "temporal-reasoning": 0.9174358974358975
+   }
+  },
+  "ours | segment | topic raw | hybrid_minilm | w=0.25 | partner=False": {
+   "2048": {
+    "recall": 0.8628691983122363,
+    "all": 0.7890295358649789,
+    "sess": 0.8716596343178622,
+    "single-session-user": 0.921875,
+    "single-session-assistant": 0.8888888888888888,
+    "single-session-preference": 0.7444444444444444,
+    "multi-session": 0.7345454545454546,
+    "knowledge-update": 0.9651162790697675,
+    "temporal-reasoning": 0.8912820512820513
+   },
+   "4096": {
+    "recall": 0.9066807313642756,
+    "all": 0.8396624472573839,
+    "sess": 0.9164556962025318,
+    "single-session-user": 0.953125,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.7444444444444444,
+    "multi-session": 0.8106060606060606,
+    "knowledge-update": 0.9767441860465116,
+    "temporal-reasoning": 0.9174358974358975
+   }
+  },
+  "ours+user | boost=0.5 | k=3 | reserve=0.25": {
+   "2048": {
+    "recall": 0.9076652601969057,
+    "all": 0.8565400843881856,
+    "sess": 0.9116736990154711,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.8148148148148148,
+    "single-session-preference": 1.0,
+    "multi-session": 0.8687878787878788,
+    "knowledge-update": 0.9806201550387597,
+    "temporal-reasoning": 0.8717948717948718
+   },
+   "4096": {
+    "recall": 0.969338959212377,
+    "all": 0.9409282700421941,
+    "sess": 0.9715893108298173,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 1.0,
+    "multi-session": 0.9315151515151515,
+    "knowledge-update": 0.9883720930232558,
+    "temporal-reasoning": 0.9615384615384616
+   }
+  },
+  "control: session grouping | boost=0.5 | k=3 | reserve=0.4": {
+   "2048": {
+    "recall": 0.9115330520393812,
+    "all": 0.8649789029535865,
+    "sess": 0.9142053445850915,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.7407407407407407,
+    "single-session-preference": 1.0,
+    "multi-session": 0.8648484848484849,
+    "knowledge-update": 0.9806201550387597,
+    "temporal-reasoning": 0.9199999999999999
+   },
+   "4096": {
+    "recall": 0.9625879043600563,
+    "all": 0.9324894514767933,
+    "sess": 0.9636427566807313,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 1.0,
+    "multi-session": 0.915151515151515,
+    "knowledge-update": 0.9883720930232558,
+    "temporal-reasoning": 0.9507692307692307
+   }
+  },
+  "control: fixed10 grouping | boost=0.5 | k=3 | reserve=0.4": {
+   "2048": {
+    "recall": 0.8812236286919831,
+    "all": 0.8227848101265823,
+    "sess": 0.8875527426160339,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.7407407407407407,
+    "single-session-preference": 0.9333333333333333,
+    "multi-session": 0.8009090909090909,
+    "knowledge-update": 0.9651162790697675,
+    "temporal-reasoning": 0.8892307692307692
+   },
+   "4096": {
+    "recall": 0.9359353023909985,
+    "all": 0.8818565400843882,
+    "sess": 0.9399437412095639,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 1.0,
+    "single-session-preference": 0.9333333333333333,
+    "multi-session": 0.8518181818181818,
+    "knowledge-update": 0.9883720930232558,
+    "temporal-reasoning": 0.9225641025641026
+   }
+  },
+  "control: global user prior | boost=0.25": {
+   "2048": {
+    "recall": 0.9219409282700421,
+    "all": 0.8734177215189873,
+    "sess": 0.9357243319268637,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.8518518518518519,
+    "single-session-preference": 0.7777777777777778,
+    "multi-session": 0.8884848484848485,
+    "knowledge-update": 1.0,
+    "temporal-reasoning": 0.9302564102564103
+   },
+   "4096": {
+    "recall": 0.9522503516174402,
+    "all": 0.919831223628692,
+    "sess": 0.9635724331926864,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.8888888888888888,
+    "single-session-preference": 0.9444444444444444,
+    "multi-session": 0.9184848484848485,
+    "knowledge-update": 1.0,
+    "temporal-reasoning": 0.9615384615384616
+   }
+  },
+  "control: cost-aware fill | alpha=0.25": {
+   "2048": {
+    "recall": 0.9231364275668074,
+    "all": 0.8818565400843882,
+    "sess": 0.9333333333333332,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.7037037037037037,
+    "single-session-preference": 0.9111111111111111,
+    "multi-session": 0.8966666666666666,
+    "knowledge-update": 1.0,
+    "temporal-reasoning": 0.9584615384615384
+   },
+   "4096": {
+    "recall": 0.9539381153305203,
+    "all": 0.919831223628692,
+    "sess": 0.9639943741209565,
+    "single-session-user": 0.984375,
+    "single-session-assistant": 0.8518518518518519,
+    "single-session-preference": 0.9777777777777777,
+    "multi-session": 0.9348484848484848,
+    "knowledge-update": 1.0,
+    "temporal-reasoning": 0.9615384615384616
+   }
+  }
+ },
+ "qa": {
+  "SeCom-style | segsess  | comp | bm25": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.2700554855859986,
+     0.22178051574257562,
+     0.3209994709721998
+    ],
+    "em": [
+     0.1729957805907173,
+     0.12658227848101267,
+     0.21940928270042195
+    ],
+    "context_tokens": 2036.9240506329113,
+    "context_messages": 11.215189873417721
+   },
+   "4096": {
+    "n": 237,
+    "f1": [
+     0.2597289747225874,
+     0.2096670116830695,
+     0.31123727723612177
+    ],
+    "em": [
+     0.1940928270042194,
+     0.14345991561181434,
+     0.24472573839662448
+    ],
+    "context_tokens": 4085.8734177215188,
+    "context_messages": 19.240506329113924
+   }
+  },
+  "SeCom-style | segsess  | comp | mpnet": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.25340914784431007,
+     0.20670722880137987,
+     0.30259766816414896
+    ],
+    "em": [
+     0.16033755274261605,
+     0.11392405063291139,
+     0.20675105485232068
+    ],
+    "context_tokens": 2032.746835443038,
+    "context_messages": 11.60759493670886
+   }
+  },
+  "SeCom-style | segsess  | comp | hybrid_minilm": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.2672115529279842,
+     0.21841183425330402,
+     0.3179451575837811
+    ],
+    "em": [
+     0.16877637130801687,
+     0.12236286919831224,
+     0.21940928270042195
+    ],
+    "context_tokens": 2038.9535864978902,
+    "context_messages": 11.059071729957806
+   }
+  },
+  "SeCom-style | exchange | raw  | hybrid_minilm": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.32904071838857285,
+     0.27557600703966983,
+     0.3826559615022526
+    ],
+    "em": [
+     0.22362869198312235,
+     0.1729957805907173,
+     0.27848101265822783
+    ],
+    "context_tokens": 2037.7426160337552,
+    "context_messages": 11.371308016877638
+   }
+  },
+  "SeCom-style | turn     | raw  | minilm": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.33864059462831814,
+     0.2861933663957148,
+     0.39321926501156923
+    ],
+    "em": [
+     0.2320675105485232,
+     0.18143459915611815,
+     0.2869198312236287
+    ],
+    "context_tokens": 2036.3881856540083,
+    "context_messages": 12.60759493670886
+   }
+  },
+  "SeCom-style | turn     | raw  | hybrid_minilm": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.3509503809223669,
+     0.2972953676569459,
+     0.4066102719399403
+    ],
+    "em": [
+     0.25316455696202533,
+     0.19831223628691982,
+     0.3080168776371308
+    ],
+    "context_tokens": 2034.308016877637,
+    "context_messages": 11.603375527426161
+   },
+   "4096": {
+    "n": 237,
+    "f1": [
+     0.2582867290577089,
+     0.2102263223052596,
+     0.3096486499216295
+    ],
+    "em": [
+     0.18565400843881857,
+     0.1350210970464135,
+     0.23628691983122363
+    ],
+    "context_tokens": 4085.3586497890296,
+    "context_messages": 19.890295358649787
+   }
+  },
+  "ours | segment | topic raw | hybrid_minilm | w=0.25 | partner=False": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.3505322118449429,
+     0.297633940332011,
+     0.40353567393725376
+    ],
+    "em": [
+     0.24472573839662448,
+     0.189873417721519,
+     0.29957805907172996
+    ],
+    "context_tokens": 2032.2151898734178,
+    "context_messages": 11.518987341772151
+   }
+  },
+  "ours+user | boost=0.5 | k=3 | reserve=0.25": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.36882687806740166,
+     0.31581495692061395,
+     0.42327055588890683
+    ],
+    "em": [
+     0.25316455696202533,
+     0.19831223628691982,
+     0.3080168776371308
+    ],
+    "context_tokens": 2033.5021097046413,
+    "context_messages": 25.257383966244724
+   },
+   "4096": {
+    "n": 237,
+    "f1": [
+     0.3099964291903508,
+     0.2582921415714582,
+     0.3645904788845555
+    ],
+    "em": [
+     0.22362869198312235,
+     0.1729957805907173,
+     0.27848101265822783
+    ],
+    "context_tokens": 4082.0928270042195,
+    "context_messages": 37.28270042194093
+   }
+  },
+  "control: session grouping | boost=0.5 | k=3 | reserve=0.4": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.3590200569307687,
+     0.30544566146236257,
+     0.413599557978017
+    ],
+    "em": [
+     0.2489451476793249,
+     0.1940928270042194,
+     0.3037974683544304
+    ],
+    "context_tokens": 2029.0675105485232,
+    "context_messages": 26.531645569620252
+   }
+  },
+  "control: fixed10 grouping | boost=0.5 | k=3 | reserve=0.4": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.35788259069374356,
+     0.3043172056369178,
+     0.4134742254839203
+    ],
+    "em": [
+     0.25316455696202533,
+     0.19831223628691982,
+     0.3080168776371308
+    ],
+    "context_tokens": 2030.2911392405063,
+    "context_messages": 25.569620253164558
+   }
+  },
+  "control: global user prior | boost=0.25": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.36552070731460845,
+     0.31142540602258223,
+     0.4198107089415588
+    ],
+    "em": [
+     0.2489451476793249,
+     0.1940928270042194,
+     0.3037974683544304
+    ],
+    "context_tokens": 2035.945147679325,
+    "context_messages": 19.476793248945146
+   },
+   "4096": {
+    "n": 237,
+    "f1": [
+     0.30647177116287844,
+     0.254131054531088,
+     0.36016518077840204
+    ],
+    "em": [
+     0.21518987341772153,
+     0.16455696202531644,
+     0.270042194092827
+    ],
+    "context_tokens": 4077.4978902953585,
+    "context_messages": 30.0210970464135
+   }
+  },
+  "control: cost-aware fill | alpha=0.25": {
+   "2048": {
+    "n": 237,
+    "f1": [
+     0.355799342956034,
+     0.3026558704192227,
+     0.408770958043912
+    ],
+    "em": [
+     0.24050632911392406,
+     0.18565400843881857,
+     0.29535864978902954
+    ],
+    "context_tokens": 2033.691983122363,
+    "context_messages": 25.928270042194093
+   },
+   "4096": {
+    "n": 237,
+    "f1": [
+     0.2809889587603125,
+     0.22919624771782704,
+     0.33379175076124623
+    ],
+    "em": [
+     0.1940928270042194,
+     0.14345991561181434,
+     0.24472573839662448
+    ],
+    "context_tokens": 4079.5021097046415,
+    "context_messages": 39.51054852320675
+   }
+  }
+ },
+ "dev_grid_2048": {
+  "raw": [
+   [
+    0.7630185979971388,
+    0.6747496423462087,
+    0.7875536480686696,
+    0.7753218884120171,
+    0.8243204577968526
+   ],
+   [
+    0.767381974248927,
+    0.6605865522174534,
+    0.7199570815450643,
+    0.7530758226037195,
+    0.7953505007153076
+   ],
+   [
+    0.5664520743919886,
+    0.4754649499284692,
+    0.5456366237482116,
+    0.5329756795422032,
+    0.5791845493562231
+   ],
+   [
+    0.5809728183118741,
+    0.5017167381974249,
+    0.5650929899856938,
+    0.5487124463519314,
+    0.599928469241774
+   ]
+  ],
+  "comp": [
+   [
+    0.7572961373390558,
+    0.7486409155937053,
+    0.7875536480686696,
+    0.8159513590844063,
+    0.8178111587982833
+   ],
+   [
+    0.7485693848354792,
+    0.7218884120171674,
+    0.7199570815450643,
+    0.7754649499284693,
+    0.7946351931330471
+   ],
+   [
+    0.5525751072961373,
+    0.5394134477825465,
+    0.5456366237482116,
+    0.5829041487839771,
+    0.5720314735336195
+   ],
+   [
+    0.5773962804005722,
+    0.5512875536480686,
+    0.5650929899856938,
+    0.5909871244635194,
+    0.5956366237482116
+   ]
+  ]
+ },
+ "labels": {
+  "SeCom-style | segsess  | comp | bm25": "SeCom (BM25) [faithful]",
+  "SeCom-style | segsess  | comp | mpnet": "SeCom (MPNet)",
+  "SeCom-style | segsess  | comp | hybrid_minilm": "SeCom (BM25+MiniLM)",
+  "SeCom-style | exchange | raw  | hybrid_minilm": "Exchange-level (BM25+MiniLM)",
+  "SeCom-style | turn     | raw  | minilm": "Turn-level dense (MiniLM)",
+  "SeCom-style | turn     | raw  | hybrid_minilm": "Turn-level hybrid (BM25+MiniLM)",
+  "ours | segment | topic raw | hybrid_minilm | w=0.25 | partner=False": "ΔContext topic fusion",
+  "ours+user | boost=0.5 | k=3 | reserve=0.25": "ΔContext-R (ours)",
+  "control: session grouping | boost=0.5 | k=3 | reserve=0.4": "Control: true sessions as topics",
+  "control: fixed10 grouping | boost=0.5 | k=3 | reserve=0.4": "Control: 10-turn chunks as topics",
+  "control: global user prior | boost=0.25": "Control: global user-turn prior",
+  "control: cost-aware fill | alpha=0.25": "Control: cost-aware fill"
+ }
+}
